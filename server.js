@@ -100,7 +100,7 @@ bot.on("message", (msg) => {
 
     return bot.sendMessage(
       chatId,
-      `✅ Aktivlashtirildi!\n\n🌐 Link:\nhttps://YOUR-DOMAIN/${code}`
+      `✅ Aktivlashtirildi!\n\n🌐 Link:\const link = `https://osonqr-server-production.up.railway.app/${code}`;
     );
   }
 });
