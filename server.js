@@ -17,6 +17,27 @@ function getData() {
 
 // Asosiy sahifa
 app.get("/:id", (req, res) => {
+  app.get("/qr/:id", async (req, res) => {
+  const id = req.params.id;
+  const url = `${req.protocol}://${req.get("host")}/${id}`;
+
+  try {
+    const qr = await QRCode.toDataURL(url);
+
+    res.send(`
+      <html>
+        <body style="text-align:center; font-family:sans-serif;">
+          <h2>QR Code</h2>
+          <img src="${qr}" />
+          <p>${url}</p>
+        </body>
+      </html>
+    `);
+  } catch (err) {
+    res.send("Xatolik ❌");
+  }
+});
+
   const data = getData();
   const user = data[req.params.id];
 
@@ -70,24 +91,4 @@ const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log("Server ishlayapti: " + PORT);
-});
-app.get("/qr/:id", async (req, res) => {
-  const id = req.params.id;
-  const url = `${req.protocol}://${req.get("host")}/${id}`;
-
-  try {
-    const qr = await QRCode.toDataURL(url);
-
-    res.send(`
-      <html>
-        <body style="text-align:center; font-family:sans-serif;">
-          <h2>QR Code</h2>
-          <img src="${qr}" />
-          <p>${url}</p>
-        </body>
-      </html>
-    `);
-  } catch (err) {
-    res.send("Xatolik ❌");
-  }
 });
