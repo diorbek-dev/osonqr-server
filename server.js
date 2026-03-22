@@ -4,8 +4,7 @@ const session = require("express-session");
 
 const app = express();
 
-app.use(express.urlencoded({ extended: true }));
-
+// SESSION
 app.use(session({
   secret: "secret123",
   resave: false,
@@ -15,7 +14,7 @@ app.use(session({
 // BODY PARSE
 app.use(express.urlencoded({ extended: true }));
 
-// ===== DB (file fallback) =====
+// ===== DB (file) =====
 function getData() {
   try {
     return JSON.parse(fs.readFileSync("db.json"));
@@ -31,57 +30,6 @@ function saveData(data) {
 // ===== HOME =====
 app.get("/", (req, res) => {
   res.send("🚀 Server ishlayapti");
-});
-
-// ===== USER PAGE =====
-
-  }
-
-  res.send(`
-    <html>
-    <head>
-      <style>
-        body {
-          background:#0f172a;
-          color:white;
-          font-family:sans-serif;
-          display:flex;
-          justify-content:center;
-          align-items:center;
-          height:100vh;
-        }
-        .card {
-          background:#1e293b;
-          padding:20px;
-          border-radius:15px;
-          text-align:center;
-          width:250px;
-        }
-        a {
-          display:block;
-          margin:10px 0;
-          padding:10px;
-          border-radius:8px;
-          color:white;
-          text-decoration:none;
-        }
-        .phone { background:green; }
-        .tg { background:#3b82f6; }
-        .ig { background:#e1306c; }
-      </style>
-    </head>
-    <body>
-      <div class="card">
-        <h2>${user.name}</h2>
-        <p>${user.phone}</p>
-
-        ${user.phone ? `<a class="phone" href="tel:${user.phone}">📞 Qo‘ng‘iroq</a>` : ""}
-        ${user.telegram ? `<a class="tg" href="https://t.me/${user.telegram}">Telegram</a>` : ""}
-        ${user.instagram ? `<a class="ig" href="https://instagram.com/${user.instagram}">Instagram</a>` : ""}
-      </div>
-    </body>
-    </html>
-  `);
 });
 
 // ===== LOGIN =====
@@ -116,28 +64,26 @@ app.get("/logout", (req, res) => {
 
 // ===== ADMIN PANEL =====
 app.get("/admin", (req, res) => {
-  if (!req.session.auth) {
-    return res.redirect("/login");
-  }
+  if (!req.session.auth) return res.redirect("/login");
 
   const data = getData();
 
   let html = `
-  <html>
-  <head>
-    <title>Admin Panel</title>
-    <style>
-      body { font-family: Arial; background:#0f172a; color:white; padding:20px; }
-      table { width:100%; border-collapse: collapse; }
-      td, th { padding:10px; border-bottom:1px solid #333; }
-      a { color:#38bdf8; text-decoration:none; }
-      .del { color:red; }
-    </style>
-  </head>
-  <body>
     <h2>📊 Admin Panel</h2>
-    <a href="/logout">🚪 Chiqish</a>
-    <table>
+    <a href="/logout">🚪 Chiqish</a><br><br>
+
+    <form method="POST" action="/add">
+      <input name="code" placeholder="Code (A001)"/><br>
+      <input name="name" placeholder="Ism"/><br>
+      <input name="phone" placeholder="Telefon"/><br>
+      <input name="telegram" placeholder="Telegram"/><br>
+      <input name="instagram" placeholder="Instagram"/><br>
+      <button>➕ Qo‘shish</button>
+    </form>
+
+    <hr>
+
+    <table border="1" cellpadding="5">
       <tr>
         <th>Kod</th>
         <th>Ism</th>
@@ -159,20 +105,27 @@ app.get("/admin", (req, res) => {
         <td>${u.telegram || ""}</td>
         <td>${u.instagram || ""}</td>
         <td>
-          <a href="/edit/${code}">✏️ Edit</a> |
-          <a href="/delete/${code}" class="del">❌ Delete</a>
+          <a href="/edit/${code}">✏️ Edit</a>
+          <a href="/delete/${code}">❌ Delete</a>
         </td>
       </tr>
     `;
   });
 
-  html += `
-    </table>
-  </body>
-  </html>
-  `;
+  html += "</table>";
 
   res.send(html);
+});
+
+// ===== ADD USER =====
+app.post("/add", (req, res) => {
+  const data = getData();
+  const { code, name, phone, telegram, instagram } = req.body;
+
+  data[code] = { name, phone, telegram, instagram };
+
+  saveData(data);
+  res.redirect("/admin");
 });
 
 // ===== EDIT =====
@@ -182,15 +135,15 @@ app.get("/edit/:id", (req, res) => {
   const data = getData();
   const user = data[req.params.id];
 
-  if (!user) return res.send("Topilmadi");
+  if (!user) return res.send("❌ Topilmadi");
 
   res.send(`
     <h2>Edit ${req.params.id}</h2>
     <form method="POST">
-      <input name="name" value="${user.name}" placeholder="Ism"/><br>
-      <input name="phone" value="${user.phone}" placeholder="Telefon"/><br>
-      <input name="telegram" value="${user.telegram}" placeholder="Telegram"/><br>
-      <input name="instagram" value="${user.instagram}" placeholder="Instagram"/><br>
+      <input name="name" value="${user.name || ""}" /><br>
+      <input name="phone" value="${user.phone || ""}" /><br>
+      <input name="telegram" value="${user.telegram || ""}" /><br>
+      <input name="instagram" value="${user.instagram || ""}" /><br>
       <button>Saqlash</button>
     </form>
   `);
@@ -215,24 +168,13 @@ app.get("/delete/:id", (req, res) => {
   if (!req.session.auth) return res.redirect("/login");
 
   const data = getData();
-
   delete data[req.params.id];
 
   saveData(data);
   res.redirect("/admin");
 });
 
-// ===== START =====
-const PORT = process.env.PORT || 3000;
-// boshqa routelar...
-
-app.get("/login", ...)
-app.post("/login", ...)
-app.get("/admin", ...)
-app.get("/edit/:id", ...)
-app.get("/delete/:id", ...)
-
-// 👇 ENG OXIRIDA
+// ===== USER PAGE (ENG OXIRIDA!) =====
 app.get("/:id", (req, res) => {
   const data = getData();
   const user = data[req.params.id];
@@ -241,8 +183,14 @@ app.get("/:id", (req, res) => {
     return res.send("❌ Topilmadi");
   }
 
-  res.send(`...`);
+  res.send(`
+    <h2>${user.name}</h2>
+    <p>${user.phone}</p>
+    ${user.telegram ? `<a href="https://t.me/${user.telegram}">Telegram</a><br>` : ""}
+    ${user.instagram ? `<a href="https://instagram.com/${user.instagram}">Instagram</a>` : ""}
+  `);
 });
 
-// 👇 bundan keyin
+// ===== START =====
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log("Server ishladi:", PORT));
