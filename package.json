@@ -1,5 +1,5 @@
 {
-  "name": "qr-business",
+  "name": "osonqr-server",
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
@@ -8,6 +8,6 @@
   "dependencies": {
     "express": "^4.18.2",
     "qrcode": "^1.5.4",
-    "node-telegram-bot-api": "^0.64.0"
+    "node-telegram-bot-api": "^0.61.0"
   }
 }
