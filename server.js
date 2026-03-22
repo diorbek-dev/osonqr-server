@@ -7,7 +7,7 @@ const app = express();
 app.use(express.json());
 
 // 🔐 TOKEN (o‘zingnikini qo‘y)
-const bot = new TelegramBot("YOUR_BOT_TOKEN", { polling: true });
+const bot = new TelegramBot("8778983271:AAH7c_9HZvqv-GA1jpnsjATkz5qICwwLTZ4", { polling: true });
 
 // 📦 DB
 function getData() {
