@@ -99,9 +99,9 @@ bot.on("message", (msg) => {
     delete userState[chatId];
 
     return bot.sendMessage(
-      chatId,
-      `✅ Aktivlashtirildi!\n\n🌐 Link:\const link = `https://osonqr-server-production.up.railway.app/${code}`;
-    );
+  chatId,
+  `✅ Aktivlashtirildi!\n\n🌐 Link:\nhttps://osonqr-server-production.up.railway.app/${code}`
+);
   }
 });
 
