@@ -2,13 +2,12 @@ const express = require("express");
 const fs = require("fs");
 const session = require("express-session");
 
-require("./bot"); // telegram bot
-
 const app = express();
 
-// SESSION
+app.use(express.urlencoded({ extended: true }));
+
 app.use(session({
-  secret: "osonqr-secret",
+  secret: "secret123",
   resave: false,
   saveUninitialized: true
 }));
