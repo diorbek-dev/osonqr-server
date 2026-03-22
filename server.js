@@ -1,176 +1,120 @@
 const express = require("express");
 const fs = require("fs");
 const QRCode = require("qrcode");
+const TelegramBot = require("node-telegram-bot-api");
 
 const app = express();
-app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-/* =======================
-   📂 DATA O‘QISH
-======================= */
+// 🔐 TOKEN (o‘zingnikini qo‘y)
+const bot = new TelegramBot("YOUR_BOT_TOKEN", { polling: true });
+
+// 📦 DB
 function getData() {
   try {
-    const data = fs.readFileSync("db.json", "utf-8");
-    return JSON.parse(data);
+    return JSON.parse(fs.readFileSync("db.json", "utf-8"));
   } catch {
     return {};
   }
 }
 
-/* =======================
-   💾 DATA SAQLASH
-======================= */
 function saveData(data) {
   fs.writeFileSync("db.json", JSON.stringify(data, null, 2));
 }
 
-/* =======================
-   🏠 TEST
-======================= */
+// =======================
+// 🤖 TELEGRAM BOT
+// =======================
+
+let userState = {};
+
+// /start
+bot.onText(/\/start/, (msg) => {
+  bot.sendMessage(msg.chat.id, "🔑 Kod kiriting (masalan: A001)");
+});
+
+// message handler
+bot.on("message", (msg) => {
+  const chatId = msg.chat.id;
+  const text = msg.text;
+
+  if (!text || text.startsWith("/")) return;
+
+  const data = getData();
+
+  // 1️⃣ Kod kiritish
+  if (!userState[chatId]) {
+    const code = text.toUpperCase();
+
+    if (data[code]) {
+      return bot.sendMessage(chatId, "❌ Bu kod band!");
+    }
+
+    userState[chatId] = { step: "name", code };
+
+    return bot.sendMessage(chatId, "👤 Ismingiz:");
+  }
+
+  const state = userState[chatId];
+
+  // 2️⃣ Ism
+  if (state.step === "name") {
+    state.name = text;
+    state.step = "phone";
+    return bot.sendMessage(chatId, "📞 Telefon:");
+  }
+
+  // 3️⃣ Telefon
+  if (state.step === "phone") {
+    state.phone = text;
+    state.step = "telegram";
+    return bot.sendMessage(chatId, "📱 Telegram username:");
+  }
+
+  // 4️⃣ Telegram
+  if (state.step === "telegram") {
+    state.telegram = text;
+    state.step = "instagram";
+    return bot.sendMessage(chatId, "📸 Instagram:");
+  }
+
+  // 5️⃣ Instagram
+  if (state.step === "instagram") {
+    const code = state.code;
+
+    data[code] = {
+      name: state.name,
+      phone: state.phone,
+      telegram: state.telegram,
+      instagram: text,
+      owner: chatId,
+      active: true,
+      show_phone: true,
+      show_telegram: true,
+      show_instagram: true
+    };
+
+    saveData(data);
+
+    delete userState[chatId];
+
+    return bot.sendMessage(
+      chatId,
+      `✅ Aktivlashtirildi!\n\n🌐 Link:\nhttps://YOUR-DOMAIN/${code}`
+    );
+  }
+});
+
+// =======================
+// 🌐 ROUTES
+// =======================
+
+// HOME
 app.get("/", (req, res) => {
-  res.send("Server ishlayapti 🚀");
+  res.send("🚀 Server ishlayapti");
 });
 
-/* =======================
-   🔗 PROFILE PAGE
-======================= */
-app.get("/:id", (req, res) => {
-  const data = getData();
-  const user = data[req.params.id];
-
-  if (!user) {
-    return res.send(`
-      <h2>Profil yo‘q ❌</h2>
-      <a href="/register/${req.params.id}">Ro‘yxatdan o‘tish</a>
-    `);
-  }
-
-  res.send(`
-    <html>
-    <body style="text-align:center; font-family:sans-serif;">
-      <h1>${user.name}</h1>
-      <p>${user.phone}</p>
-
-      <a href="tel:${user.phone}">
-        <button>📞 Qo‘ng‘iroq</button>
-      </a>
-
-      <br><br>
-
-      <a href="/edit/${req.params.id}">
-        <button>✏️ Edit</button>
-      </a>
-    </body>
-    </html>
-  `);
-});
-
-/* =======================
-   📝 REGISTER PAGE
-======================= */
-app.get("/register/:id", (req, res) => {
-  const id = req.params.id;
-
-  res.send(`
-    <h2>Ro‘yxatdan o‘tish</h2>
-    <form method="POST" action="/register/${id}">
-      <input name="name" placeholder="Ism" required /><br><br>
-      <input name="phone" placeholder="Telefon" required /><br><br>
-      <button type="submit">Saqlash</button>
-    </form>
-  `);
-});
-
-/* =======================
-   💾 REGISTER SAVE + SECRET
-======================= */
-app.post("/register/:id", (req, res) => {
-  const data = getData();
-  const id = req.params.id;
-
-  const secret = Math.random().toString(36).substring(2, 8);
-
-  data[id] = {
-    name: req.body.name,
-    phone: req.body.phone,
-    secret: secret
-  };
-
-  saveData(data);
-
-  res.send(`
-    <h2>Saqlandi ✅</h2>
-    <p>🔐 Sening maxfiy koding:</p>
-    <h1>${secret}</h1>
-    <p>⚠️ Shu kodni saqla! Edit qilish uchun kerak bo‘ladi</p>
-    <a href="/${id}">Profilga o‘tish</a>
-  `);
-});
-
-/* =======================
-   🔐 EDIT LOGIN (SECRET)
-======================= */
-app.get("/edit/:id", (req, res) => {
-  res.send(`
-    <h2>Parol kiriting</h2>
-    <form method="POST" action="/edit/${req.params.id}">
-      <input name="secret" placeholder="Secret code" required />
-      <button type="submit">Kirish</button>
-    </form>
-  `);
-});
-
-/* =======================
-   🔐 EDIT CHECK
-======================= */
-app.post("/edit/:id", (req, res) => {
-  const data = getData();
-  const id = req.params.id;
-  const user = data[id];
-
-  if (!user) return res.send("Topilmadi ❌");
-
-  if (req.body.secret !== user.secret) {
-    return res.send("Noto‘g‘ri kod ❌");
-  }
-
-  res.send(`
-    <h2>Yangilash</h2>
-    <form method="POST" action="/update/${id}">
-      <input name="name" value="${user.name}" /><br><br>
-      <input name="phone" value="${user.phone}" /><br><br>
-      <input type="hidden" name="secret" value="${user.secret}" />
-      <button type="submit">Saqlash</button>
-    </form>
-  `);
-});
-
-/* =======================
-   💾 UPDATE SAVE
-======================= */
-app.post("/update/:id", (req, res) => {
-  const data = getData();
-  const id = req.params.id;
-  const user = data[id];
-
-  if (!user) return res.send("Topilmadi ❌");
-
-  if (req.body.secret !== user.secret) {
-    return res.send("Ruxsat yo‘q ❌");
-  }
-
-  data[id].name = req.body.name;
-  data[id].phone = req.body.phone;
-
-  saveData(data);
-
-  res.redirect(`/${id}`);
-});
-
-/* =======================
-   🔥 QR GENERATOR
-======================= */
+// QR PAGE
 app.get("/qr/:id", async (req, res) => {
   const id = req.params.id;
 
@@ -180,22 +124,92 @@ app.get("/qr/:id", async (req, res) => {
     const qr = await QRCode.toDataURL(url);
 
     res.send(`
-      <html>
-      <body style="text-align:center; font-family:sans-serif;">
-        <h2>QR Code</h2>
-        <img src="${qr}" /><br><br>
-        <p>${url}</p>
-      </body>
-      </html>
+    <html>
+    <body style="text-align:center;font-family:sans-serif;">
+      <h2>QR Code</h2>
+      <img src="${qr}" />
+      <p>${url}</p>
+    </body>
+    </html>
     `);
   } catch {
     res.send("Xatolik ❌");
   }
 });
 
-/* =======================
-   🚀 SERVER
-======================= */
+// USER PROFILE
+app.get("/:id", (req, res) => {
+  const data = getData();
+  const user = data[req.params.id];
+
+  if (!user || !user.active) {
+    return res.send("❌ Topilmadi");
+  }
+
+  res.send(`
+  <html>
+  <body style="
+    margin:0;
+    background:#0f172a;
+    font-family:sans-serif;
+    color:white;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+  ">
+
+  <div style="
+    width:300px;
+    background:#1e293b;
+    border-radius:20px;
+    padding:20px;
+    text-align:center;
+  ">
+
+    <img src="https://i.pravatar.cc/150" style="
+      width:100px;
+      border-radius:50%;
+      margin-bottom:10px;
+    ">
+
+    <h2>${user.name}</h2>
+
+    ${user.show_phone ? `<p>${user.phone}</p>` : ""}
+
+    <br>
+
+    ${user.show_phone ? `
+    <a href="tel:${user.phone}">
+      <button style="width:100%;padding:10px;margin:5px;background:#22c55e;border:none;border-radius:10px;color:white;">
+        📞 Qo‘ng‘iroq
+      </button>
+    </a>` : ""}
+
+    ${user.show_telegram ? `
+    <a href="https://t.me/${user.telegram}">
+      <button style="width:100%;padding:10px;margin:5px;background:#3b82f6;border:none;border-radius:10px;color:white;">
+        Telegram
+      </button>
+    </a>` : ""}
+
+    ${user.show_instagram ? `
+    <a href="https://instagram.com/${user.instagram}">
+      <button style="width:100%;padding:10px;margin:5px;background:#e1306c;border:none;border-radius:10px;color:white;">
+        Instagram
+      </button>
+    </a>` : ""}
+
+  </div>
+  </body>
+  </html>
+  `);
+});
+
+// =======================
+// 🚀 START
+// =======================
+
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
