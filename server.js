@@ -48,12 +48,9 @@ app.get("/:id", (req, res) => {
 
   res.send(`
     <html>
-    <head>
-      <title>${user.name}</title>
-    </head>
     <body style="text-align:center; font-family:sans-serif;">
       <h1>${user.name}</h1>
-      <p>${user.phone || ""}</p>
+      <p>${user.phone}</p>
 
       <a href="tel:${user.phone}">
         <button>📞 Qo‘ng‘iroq</button>
@@ -86,52 +83,85 @@ app.get("/register/:id", (req, res) => {
 });
 
 /* =======================
-   💾 REGISTER SAVE
+   💾 REGISTER SAVE + SECRET
 ======================= */
 app.post("/register/:id", (req, res) => {
   const data = getData();
   const id = req.params.id;
 
+  const secret = Math.random().toString(36).substring(2, 8);
+
   data[id] = {
     name: req.body.name,
     phone: req.body.phone,
+    secret: secret
   };
 
   saveData(data);
 
-  res.redirect(`/${id}`);
+  res.send(`
+    <h2>Saqlandi ✅</h2>
+    <p>🔐 Sening maxfiy koding:</p>
+    <h1>${secret}</h1>
+    <p>⚠️ Shu kodni saqla! Edit qilish uchun kerak bo‘ladi</p>
+    <a href="/${id}">Profilga o‘tish</a>
+  `);
 });
 
 /* =======================
-   ✏️ EDIT PAGE
+   🔐 EDIT LOGIN (SECRET)
 ======================= */
 app.get("/edit/:id", (req, res) => {
-  const data = getData();
-  const user = data[req.params.id];
-
-  if (!user) return res.send("Topilmadi ❌");
-
   res.send(`
-    <h2>Edit</h2>
+    <h2>Parol kiriting</h2>
     <form method="POST" action="/edit/${req.params.id}">
-      <input name="name" value="${user.name}" /><br><br>
-      <input name="phone" value="${user.phone}" /><br><br>
-      <button type="submit">Yangilash</button>
+      <input name="secret" placeholder="Secret code" required />
+      <button type="submit">Kirish</button>
     </form>
   `);
 });
 
 /* =======================
-   💾 EDIT SAVE
+   🔐 EDIT CHECK
 ======================= */
 app.post("/edit/:id", (req, res) => {
   const data = getData();
   const id = req.params.id;
+  const user = data[id];
 
-  data[id] = {
-    name: req.body.name,
-    phone: req.body.phone,
-  };
+  if (!user) return res.send("Topilmadi ❌");
+
+  if (req.body.secret !== user.secret) {
+    return res.send("Noto‘g‘ri kod ❌");
+  }
+
+  res.send(`
+    <h2>Yangilash</h2>
+    <form method="POST" action="/update/${id}">
+      <input name="name" value="${user.name}" /><br><br>
+      <input name="phone" value="${user.phone}" /><br><br>
+      <input type="hidden" name="secret" value="${user.secret}" />
+      <button type="submit">Saqlash</button>
+    </form>
+  `);
+});
+
+/* =======================
+   💾 UPDATE SAVE
+======================= */
+app.post("/update/:id", (req, res) => {
+  const data = getData();
+  const id = req.params.id;
+  const user = data[id];
+
+  if (!user) return res.send("Topilmadi ❌");
+
+  if (req.body.secret !== user.secret) {
+    return res.send("Ruxsat yo‘q ❌");
+  }
+
+  data[id].name = req.body.name;
+  data[id].phone = req.body.phone;
 
   saveData(data);
 
