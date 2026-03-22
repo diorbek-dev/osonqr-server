@@ -1,11 +1,12 @@
-const QRCode = require("qrcode");
+```js
 const express = require("express");
 const fs = require("fs");
+const QRCode = require("qrcode");
 
 const app = express();
 app.use(express.json());
 
-// Ma'lumotni o‘qish
+// 📦 JSON o‘qish
 function getData() {
   try {
     const data = fs.readFileSync("db.json", "utf-8");
@@ -15,9 +16,8 @@ function getData() {
   }
 }
 
-// Asosiy sahifa
-app.get("/:id", (req, res) => {
-  app.get("/qr/:id", async (req, res) => {
+// 🔥 1️⃣ QR ROUTE (ENG MUHIM — TEPADA!)
+app.get("/qr/:id", async (req, res) => {
   const id = req.params.id;
   const url = `${req.protocol}://${req.get("host")}/${id}`;
 
@@ -38,6 +38,8 @@ app.get("/:id", (req, res) => {
   }
 });
 
+// 🔗 2️⃣ ASOSIY SAHIFA
+app.get("/:id", (req, res) => {
   const data = getData();
   const user = data[req.params.id];
 
@@ -46,49 +48,50 @@ app.get("/:id", (req, res) => {
   }
 
   res.send(`
-  <html>
-    <head>
-      <title>${user.name}</title>
-      <style>
-        body {
-          font-family: sans-serif;
-          text-align: center;
-          padding: 40px;
-        }
-        .btn {
-          display: block;
-          margin: 10px auto;
-          padding: 12px;
-          border-radius: 8px;
-          text-decoration: none;
-          color: white;
-          font-weight: bold;
-          width: 200px;
-        }
-        .call { background: green; }
-        .tg { background: #0088cc; }
-        .insta { background: purple; }
-      </style>
-    </head>
-    <body>
-      <h1>${user.name}</h1>
+    <html>
+      <head>
+        <title>${user.name}</title>
+        <style>
+          body {
+            font-family: sans-serif;
+            text-align: center;
+            padding: 40px;
+          }
+          .btn {
+            display: block;
+            margin: 10px auto;
+            padding: 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: white;
+            font-weight: bold;
+            width: 200px;
+          }
+          .call { background: green; }
+          .tg { background: #0088cc; }
+          .insta { background: purple; }
+        </style>
+      </head>
+      <body>
+        <h1>${user.name}</h1>
 
-      <a href="tel:${user.phone}" class="btn call">📞 Qo‘ng‘iroq</a>
-      <a href="https://t.me/${user.telegram}" class="btn tg">Telegram</a>
-      <a href="https://instagram.com/${user.instagram}" class="btn insta">Instagram</a>
-    </body>
-  </html>
+        <a href="tel:${user.phone}" class="btn call">📞 Qo‘ng‘iroq</a>
+        <a href="https://t.me/${user.telegram}" class="btn tg">Telegram</a>
+        <a href="https://instagram.com/${user.instagram}" class="btn insta">Instagram</a>
+      </body>
+    </html>
   `);
 });
 
-// Test route
+// 🏠 TEST ROUTE
 app.get("/", (req, res) => {
   res.send("Server ishlayapti 🚀");
 });
 
-// PORT (ENG MUHIM)
+// 🚀 SERVER
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log("Server ishlayapti: " + PORT);
 });
+```
