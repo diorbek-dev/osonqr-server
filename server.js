@@ -4,7 +4,7 @@ const fs = require("fs");
 const app = express();
 app.use(express.json());
 
-// Ma'lumotni o'qish
+// Ma'lumotni o‘qish
 function getData() {
 try {
 const data = fs.readFileSync("db.json", "utf-8");
@@ -23,43 +23,53 @@ if (!user) {
 return res.send("Topilmadi ❌");
 }
 
-res.send(` <html> <head> <title>${user.name}</title> <style>
-body {
-font-family: sans-serif;
-text-align: center;
-padding: 40px;
-}
-.btn {
-display: block;
-margin: 10px auto;
-padding: 12px;
-border-radius: 8px;
-text-decoration: none;
-color: white;
-font-weight: bold;
-width: 200px;
-}
-.call { background: green; }
-.tg { background: #0088cc; }
-.insta { background: purple; } </style> </head> <body> <h1>${user.name}</h1>
+res.send(`
+
+  <html>
+  <head>
+    <title>${user.name}</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        text-align: center;
+        padding: 40px;
+      }
+      .btn {
+        display: block;
+        margin: 10px auto;
+        padding: 12px;
+        border-radius: 8px;
+        text-decoration: none;
+        color: white;
+        font-weight: bold;
+        width: 200px;
+      }
+      .call { background: green; }
+      .tg { background: #0088cc; }
+      .insta { background: purple; }
+    </style>
+  </head>
+
+  <body>
+    <h1>${user.name}</h1>
 
 ```
-  <a href="tel:${user.phone}" class="btn call">📞 Qo‘ng‘iroq</a>
-  <a href="https://t.me/${user.telegram}" class="btn tg">Telegram</a>
-  <a href="https://instagram.com/${user.instagram}" class="btn insta">Instagram</a>
-</body>
-</html>
+<a href="tel:${user.phone}" class="btn call">📞 Qo‘ng‘iroq</a>
+<a href="https://t.me/${user.telegram}" class="btn tg">Telegram</a>
+<a href="https://instagram.com/${user.instagram}" class="btn insta">Instagram</a>
 ```
 
-`);
+  </body>
+  </html>
+  `);
 });
 
-// TEST route
+// Test route
 app.get("/", (req, res) => {
 res.send("Server ishlayapti 🚀");
 });
 
-// ENG MUHIM (PORT)
+// PORT (MUHIM)
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
