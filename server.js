@@ -27,8 +27,7 @@ function saveData(data) {
 // 🔥 1️⃣ QR GENERATOR
 app.get("/qr/:id", async (req, res) => {
   const id = req.params.id;
-  const url = `${req.protocol}://${req.get("host")}/register/${id}`;
-
+  const url = `${req.protocol}://${req.get("host")}/${id}`;
   try {
     const qr = await QRCode.toDataURL(url);
 
