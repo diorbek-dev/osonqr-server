@@ -34,12 +34,7 @@ app.get("/", (req, res) => {
 });
 
 // ===== USER PAGE =====
-app.get("/:id", (req, res) => {
-  const data = getData();
-  const user = data[req.params.id];
 
-  if (!user) {
-    return res.send("❌ Topilmadi");
   }
 
   res.send(`
@@ -229,4 +224,25 @@ app.get("/delete/:id", (req, res) => {
 
 // ===== START =====
 const PORT = process.env.PORT || 3000;
+// boshqa routelar...
+
+app.get("/login", ...)
+app.post("/login", ...)
+app.get("/admin", ...)
+app.get("/edit/:id", ...)
+app.get("/delete/:id", ...)
+
+// 👇 ENG OXIRIDA
+app.get("/:id", (req, res) => {
+  const data = getData();
+  const user = data[req.params.id];
+
+  if (!user) {
+    return res.send("❌ Topilmadi");
+  }
+
+  res.send(`...`);
+});
+
+// 👇 bundan keyin
 app.listen(PORT, () => console.log("Server ishladi:", PORT));
