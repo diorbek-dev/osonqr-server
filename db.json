@@ -1,13 +1,1 @@
-{
-  "A001": {
-    "name": "Ali",
-    "phone": "998901234567",
-    "telegram": "aliuser",
-    "instagram": "ali_insta",
-    "owner": 994133949,
-    "active": true,
-    "show_phone": true,
-    "show_telegram": true,
-    "show_instagram": true
-  }
-}
+{}
