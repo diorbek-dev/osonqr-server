@@ -28,7 +28,10 @@ const UserSchema = new mongoose.Schema({
   telegram: String,
   instagram: String,
   owner: Number,
-  activated: { type: Boolean, default: false }
+  activated: { type: Boolean, default: false },
+
+  // 👇 SHUNI QO‘SH
+  printed: { type: Boolean, default: false }
 });
 
 const User = mongoose.model("User", UserSchema);
@@ -144,7 +147,10 @@ app.get("/generate", async (req, res) => {
 
 // ===== QR PAGE =====
 app.get("/qr", async (req, res) => {
-  const users = await User.find().limit(100);
+  const users = await User.find({
+    activated: false,
+    printed: { $ne: true }
+  }).limit(100);
 
   let html = `
   <html>
@@ -168,7 +174,7 @@ app.get("/qr", async (req, res) => {
   </head>
   <body>
 
-  <h2>QR Kodlar</h2>
+  <h2>Yangi QR Kodlar</h2>
   <div class="grid">
   `;
 
@@ -182,6 +188,10 @@ app.get("/qr", async (req, res) => {
         ${user.code}
       </div>
     `;
+
+    // 🔥 BU ENG MUHIM QATOR
+    user.printed = true;
+    await user.save();
   }
 
   html += `
