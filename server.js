@@ -144,6 +144,12 @@ body {
   justify-content: center;
   align-items: center;
   height: 100vh;
+  .logo-img {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  margin-bottom: 10px;
+}
 }
 
 /* CARD */
@@ -213,7 +219,7 @@ body {
 
 <div class="card">
 
-<div class="logo">🚀 OsonQR</div>
+https://i.postimg.cc/sDkRyrwC/photo_2026_03_23_21_54_07.jpg
 
 <div class="name">${user.name || "Ism yo‘q"}</div>
 <div class="phone">${user.phone || ""}</div>
