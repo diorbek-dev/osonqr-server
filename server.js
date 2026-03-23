@@ -27,7 +27,7 @@ const UserSchema = new mongoose.Schema({
   telegram: String,
   instagram: String,
   owner: Number,
-  activated: { type: Boolean, default: false } // 🔥 SHU YERGA
+  activated: { type: Boolean, default: false } // 🔥 MUHIM
 });
 
 const User = mongoose.model("User", UserSchema);
@@ -42,37 +42,17 @@ app.post(`/bot${process.env.BOT_TOKEN}`, (req, res) => {
 });
 
 // ===== HOME =====
-app.get("/:code", async (req, res) => {
-  const code = req.params.code;
-
-  const user = await User.findOne({ code });
-
-  if (!user) {
-    return res.send("Topilmadi ❌");
-  }
-
-  // ❌ AKTIV EMAS → BOT
-  if (!user.activated) {
-    return res.redirect(`https://t.me/SENING_BOT_USERNAME?start=${code}`);
-  }
-
-  // ✅ AKTIV → INFO
-  res.send(`
-    <h2>${user.name || "Ism yo‘q"}</h2>
-    <p>${user.phone || ""}</p>
-
-    ${user.phone ? `<a href="tel:${user.phone}">📞 Qo‘ng‘iroq</a><br>` : ""}
-    ${user.telegram ? `<a href="https://t.me/${user.telegram}">Telegram</a><br>` : ""}
-    ${user.instagram ? `<a href="https://instagram.com/${user.instagram}">Instagram</a>` : ""}
-  `);
+app.get("/", (req, res) => {
+  res.send("🚀 Server ishlayapti");
 });
 
 // ===== LOGIN =====
 app.get("/login", (req, res) => {
   res.send(`
+    <h2>Login</h2>
     <form method="POST">
-      <input name="username" placeholder="login"><br>
-      <input name="password" type="password" placeholder="parol"><br>
+      <input name="username" placeholder="login"><br><br>
+      <input name="password" type="password" placeholder="parol"><br><br>
       <button>Kirish</button>
     </form>
   `);
@@ -86,7 +66,7 @@ app.post("/login", (req, res) => {
     return res.redirect("/admin");
   }
 
-  res.send("Xato login ❌");
+  res.send("❌ Xato login");
 });
 
 // ===== ADMIN =====
@@ -96,19 +76,24 @@ app.get("/admin", async (req, res) => {
   const data = await User.find();
 
   let html = `
-  <h2>Admin Panel</h2>
+    <h2>Admin Panel</h2>
 
-  <form method="POST" action="/add">
-    <input name="code" placeholder="Code"><br>
-    <button>Qo‘shish</button>
-  </form>
+    <form method="POST" action="/add">
+      <input name="code" placeholder="Code (A001)" required>
+      <button>Qo‘shish</button>
+    </form>
 
-  <hr>
+    <hr>
   `;
 
   data.forEach(u => {
-    html += `<p>${u.code} - ${u.name || "bo‘sh"} (${u.activated ? "✅" : "❌"})
-    <a href="/delete/${u.code}">❌</a></p>`;
+    html += `
+      <p>
+        ${u.code} — ${u.name || "bo‘sh"} 
+        [${u.activated ? "✅" : "❌"}]
+        <a href="/delete/${u.code}">❌</a>
+      </p>
+    `;
   });
 
   res.send(html);
@@ -117,7 +102,7 @@ app.get("/admin", async (req, res) => {
 // ===== ADD =====
 app.post("/add", async (req, res) => {
   await User.create({
-    code: req.body.code,
+    code: req.body.code.toUpperCase(),
     activated: false
   });
 
@@ -130,32 +115,35 @@ app.get("/delete/:code", async (req, res) => {
   res.redirect("/admin");
 });
 
-// ===== USER PAGE =====
+// ===== 🔥 ENG MUHIM — USER PAGE (ENG OXIRIDA!) =====
 app.get("/:code", async (req, res) => {
-  const code = req.params.code;
+  const code = req.params.code.toUpperCase();
+
   const user = await User.findOne({ code });
 
-  if (!user) return res.send("Topilmadi ❌");
-
-  // 🔥 AGAR AKTIV BO‘LMAGAN → BOT
-  if (!user.activated) {
-    return res.redirect(`https://t.me/@Osonqr_bot?start=${code}`);
+  if (!user) {
+    return res.send("Topilmadi ❌");
   }
 
-  // ✅ AKTIV → INFO
+  // ❌ AKTIV EMAS → BOTGA YO‘NALTIRADI
+  if (!user.activated) {
+    return res.redirect(`https://t.me/osonqr_bot?start=${code}`);
+  }
+
+  // ✅ AKTIV → INFO SAHIFA
   res.send(`
-  <html>
-  <body style="font-family:sans-serif;text-align:center;margin-top:50px">
+    <html>
+    <body style="font-family:sans-serif;text-align:center;margin-top:50px">
 
-  <h2>${user.name || "Ism yo‘q"}</h2>
-  <p>${user.phone || ""}</p>
+    <h2>${user.name || "Ism yo‘q"}</h2>
+    <p>${user.phone || ""}</p>
 
-  ${user.phone ? `<a href="tel:${user.phone}">📞 Qo‘ng‘iroq</a><br><br>` : ""}
-  ${user.telegram ? `<a href="https://t.me/${user.telegram}">Telegram</a><br><br>` : ""}
-  ${user.instagram ? `<a href="https://instagram.com/${user.instagram}">Instagram</a>` : ""}
+    ${user.phone ? `<a href="tel:${user.phone}">📞 Qo‘ng‘iroq</a><br><br>` : ""}
+    ${user.telegram ? `<a href="https://t.me/${user.telegram}">Telegram</a><br><br>` : ""}
+    ${user.instagram ? `<a href="https://instagram.com/${user.instagram}">Instagram</a>` : ""}
 
-  </body>
-  </html>
+    </body>
+    </html>
   `);
 });
 
@@ -163,5 +151,5 @@ app.get("/:code", async (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log("🚀 Server:", PORT));
 
-// 🔥 MUHIM: botga model beramiz
+// 🔥 EXPORT
 module.exports = { User };
