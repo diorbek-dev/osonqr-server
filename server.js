@@ -27,12 +27,12 @@ const UserSchema = new mongoose.Schema({
   telegram: String,
   instagram: String,
   owner: Number,
-  activated: { type: Boolean, default: false } // 🔥 MUHIM
+  activated: { type: Boolean, default: false }
 });
 
 const User = mongoose.model("User", UserSchema);
 
-// ===== BOT ULASH =====
+// ===== BOT =====
 const bot = require("./bot");
 
 // ===== WEBHOOK =====
@@ -115,35 +115,123 @@ app.get("/delete/:code", async (req, res) => {
   res.redirect("/admin");
 });
 
-// ===== 🔥 ENG MUHIM — USER PAGE (ENG OXIRIDA!) =====
+// ===== USER PAGE (PREMIUM DESIGN) =====
 app.get("/:code", async (req, res) => {
   const code = req.params.code.toUpperCase();
-
   const user = await User.findOne({ code });
 
-  if (!user) {
-    return res.send("Topilmadi ❌");
-  }
+  if (!user) return res.send("Topilmadi ❌");
 
-  // ❌ AKTIV EMAS → BOTGA YO‘NALTIRADI
   if (!user.activated) {
     return res.redirect(`https://t.me/osonqr_bot?start=${code}`);
   }
 
-  // ✅ AKTIV → INFO SAHIFA
   res.send(`
-    <html>
-    <body style="font-family:sans-serif;text-align:center;margin-top:50px">
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${user.name || "Profil"}</title>
 
-    <h2>${user.name || "Ism yo‘q"}</h2>
-    <p>${user.phone || ""}</p>
+<style>
+body {
+  margin: 0;
+  font-family: -apple-system, sans-serif;
+  background: #0f172a;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
 
-    ${user.phone ? `<a href="tel:${user.phone}">📞 Qo‘ng‘iroq</a><br><br>` : ""}
-    ${user.telegram ? `<a href="https://t.me/${user.telegram}">Telegram</a><br><br>` : ""}
-    ${user.instagram ? `<a href="https://instagram.com/${user.instagram}">Instagram</a>` : ""}
+/* CARD */
+.card {
+  width: 90%;
+  max-width: 400px;
+  background: #1e293b;
+  border-radius: 20px;
+  padding: 25px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
 
-    </body>
-    </html>
+/* NAME */
+.name {
+  font-size: 26px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+/* PHONE */
+.phone {
+  opacity: 0.7;
+  margin-bottom: 20px;
+}
+
+/* BUTTON */
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  width: 100%;
+  padding: 14px;
+  margin: 8px 0;
+
+  border-radius: 12px;
+  text-decoration: none;
+  color: white;
+  font-weight: 500;
+  font-size: 16px;
+
+  transition: 0.2s;
+}
+
+.btn:hover {
+  transform: scale(1.03);
+}
+
+/* COLORS */
+.call { background: #22c55e; }
+.tg { background: #229ED9; }
+.ig { 
+  background: linear-gradient(45deg, #feda75, #fa7e1e, #d62976, #962fbf, #4f5bd5);
+}
+
+.icon {
+  font-size: 18px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+<div class="name">${user.name || "Ism yo‘q"}</div>
+<div class="phone">${user.phone || ""}</div>
+
+${user.phone ? `
+<a class="btn call" href="tel:${user.phone}">
+<span class="icon">📞</span> Qo‘ng‘iroq
+</a>` : ""}
+
+${user.telegram ? `
+<a class="btn tg" href="https://t.me/${user.telegram}">
+<span class="icon">✈️</span> Telegram
+</a>` : ""}
+
+${user.instagram ? `
+<a class="btn ig" href="https://instagram.com/${user.instagram}">
+<span class="icon">📸</span> Instagram
+</a>` : ""}
+
+</div>
+
+</body>
+</html>
   `);
 });
 
@@ -151,5 +239,4 @@ app.get("/:code", async (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log("🚀 Server:", PORT));
 
-// 🔥 EXPORT
 module.exports = { User };
