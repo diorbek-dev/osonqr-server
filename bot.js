@@ -52,7 +52,7 @@ bot.on("message", async (msg) => {
 
   // ===== AKTIVATSIYA =====
 
-  if (state?.step === "code") {
+ if (state?.step === "code") {
   const code = text.toUpperCase();
 
   const user = await User.findOne({ code });
@@ -67,7 +67,8 @@ bot.on("message", async (msg) => {
 
   userState[chatId] = { step: "name", code };
 
-  return bot.sendMessage(chatId,
+  return bot.sendMessage(
+    chatId,
     "👤 Ismingizni kiriting:",
     {
       reply_markup: {
