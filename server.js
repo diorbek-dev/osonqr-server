@@ -26,7 +26,8 @@ const UserSchema = new mongoose.Schema({
   phone: String,
   telegram: String,
   instagram: String,
-  owner: Number
+  owner: Number,
+  activated: { type: Boolean, default: false } // 🔥 YANGI
 });
 
 const User = mongoose.model("User", UserSchema);
@@ -34,7 +35,7 @@ const User = mongoose.model("User", UserSchema);
 // ===== BOT ULASH =====
 const bot = require("./bot");
 
-// ===== WEBHOOK ROUTE =====
+// ===== WEBHOOK =====
 app.post(`/bot${process.env.BOT_TOKEN}`, (req, res) => {
   bot.processUpdate(req.body);
   res.sendStatus(200);
@@ -48,10 +49,9 @@ app.get("/", (req, res) => {
 // ===== LOGIN =====
 app.get("/login", (req, res) => {
   res.send(`
-    <h2>Login</h2>
     <form method="POST">
-      <input name="username"/><br><br>
-      <input name="password" type="password"/><br><br>
+      <input name="username" placeholder="login"><br>
+      <input name="password" type="password" placeholder="parol"><br>
       <button>Kirish</button>
     </form>
   `);
@@ -65,7 +65,7 @@ app.post("/login", (req, res) => {
     return res.redirect("/admin");
   }
 
-  res.send("Xato login");
+  res.send("Xato login ❌");
 });
 
 // ===== ADMIN =====
@@ -75,26 +75,19 @@ app.get("/admin", async (req, res) => {
   const data = await User.find();
 
   let html = `
-    <h2>Admin Panel</h2>
-    <a href="/logout">Chiqish</a><br><br>
+  <h2>Admin Panel</h2>
 
-    <form method="POST" action="/add">
-      <input name="code" placeholder="Code"/><br>
-      <input name="name" placeholder="Ism"/><br>
-      <input name="phone" placeholder="Telefon"/><br>
-      <input name="telegram" placeholder="Telegram"/><br>
-      <input name="instagram" placeholder="Instagram"/><br>
-      <button>Qo‘shish</button>
-    </form>
+  <form method="POST" action="/add">
+    <input name="code" placeholder="Code"><br>
+    <button>Qo‘shish</button>
+  </form>
 
-    <hr>
+  <hr>
   `;
 
   data.forEach(u => {
-    html += `
-      <p>${u.code} - ${u.name}
-      <a href="/delete/${u.code}">❌</a></p>
-    `;
+    html += `<p>${u.code} - ${u.name || "bo‘sh"} (${u.activated ? "✅" : "❌"})
+    <a href="/delete/${u.code}">❌</a></p>`;
   });
 
   res.send(html);
@@ -102,7 +95,11 @@ app.get("/admin", async (req, res) => {
 
 // ===== ADD =====
 app.post("/add", async (req, res) => {
-  await User.create(req.body);
+  await User.create({
+    code: req.body.code,
+    activated: false
+  });
+
   res.redirect("/admin");
 });
 
@@ -114,116 +111,36 @@ app.get("/delete/:code", async (req, res) => {
 
 // ===== USER PAGE =====
 app.get("/:code", async (req, res) => {
-  const user = await User.findOne({ code: req.params.code });
+  const code = req.params.code;
+  const user = await User.findOne({ code });
 
-  if (!user) return res.send("Topilmadi");
+  if (!user) return res.send("Topilmadi ❌");
 
+  // 🔥 AGAR AKTIV BO‘LMAGAN → BOT
+  if (!user.activated) {
+    return res.redirect(`https://t.me/SENING_BOT_USERNAME?start=${code}`);
+  }
+
+  // ✅ AKTIV → INFO
   res.send(`
-<!DOCTYPE html>
-<html lang="uz">
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>${user.name}</title>
+  <html>
+  <body style="font-family:sans-serif;text-align:center;margin-top:50px">
 
-<style>
-body {
-  margin: 0;
-  font-family: 'Segoe UI', sans-serif;
-  background: linear-gradient(135deg, #0f172a, #1e293b);
-  color: white;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-}
+  <h2>${user.name || "Ism yo‘q"}</h2>
+  <p>${user.phone || ""}</p>
 
-.container {
-  width: 100%;
-  max-width: 400px;
-  padding: 20px;
-}
+  ${user.phone ? `<a href="tel:${user.phone}">📞 Qo‘ng‘iroq</a><br><br>` : ""}
+  ${user.telegram ? `<a href="https://t.me/${user.telegram}">Telegram</a><br><br>` : ""}
+  ${user.instagram ? `<a href="https://instagram.com/${user.instagram}">Instagram</a>` : ""}
 
-.card {
-  background: rgba(255,255,255,0.05);
-  backdrop-filter: blur(15px);
-  border-radius: 20px;
-  padding: 25px;
-  text-align: center;
-  box-shadow: 0 0 30px rgba(0,0,0,0.3);
-}
-
-.name {
-  font-size: 24px;
-  font-weight: bold;
-  margin-bottom: 5px;
-}
-
-.phone {
-  opacity: 0.8;
-  margin-bottom: 20px;
-}
-
-.btn {
-  display: block;
-  text-decoration: none;
-  margin: 10px 0;
-  padding: 14px;
-  border-radius: 12px;
-  font-size: 16px;
-  font-weight: 600;
-  transition: 0.3s;
-}
-
-.call {
-  background: #22c55e;
-}
-
-.tg {
-  background: #3b82f6;
-}
-
-.ig {
-  background: #e1306c;
-}
-
-.btn:hover {
-  transform: scale(1.05);
-  opacity: 0.9;
-}
-
-.footer {
-  margin-top: 15px;
-  font-size: 12px;
-  opacity: 0.5;
-}
-</style>
-
-</head>
-
-<body>
-
-<div class="container">
-  <div class="card">
-
-    <div class="name">${user.name}</div>
-    <div class="phone">${user.phone || ""}</div>
-
-    ${user.phone ? `<a class="btn call" href="tel:${user.phone}">📞 Qo‘ng‘iroq</a>` : ""}
-
-    ${user.telegram ? `<a class="btn tg" href="https://t.me/${user.telegram}">📲 Telegram</a>` : ""}
-
-    ${user.instagram ? `<a class="btn ig" href="https://instagram.com/${user.instagram}">📸 Instagram</a>` : ""}
-
-    <div class="footer">Powered by OsonQR 🚀</div>
-
-  </div>
-</div>
-
-</body>
-</html>
-`);
+  </body>
+  </html>
+  `);
 });
 
 // ===== START =====
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log("🚀 Server:", PORT));
+
+// 🔥 MUHIM: botga model beramiz
+module.exports = { User };
