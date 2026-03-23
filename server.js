@@ -21,7 +21,7 @@ mongoose.connect(process.env.MONGO_URI)
 
 // ===== MODEL =====
 const UserSchema = new mongoose.Schema({
-  code: String,
+  code: { type: String, unique: true }, // 🔥 SHU YERGA QO‘SHILDI
   name: String,
   phone: String,
   telegram: String,
@@ -118,13 +118,18 @@ app.get("/generate", async (req, res) => {
   for (let i = 1; i <= 100; i++) {
     const code = "A" + String(i).padStart(3, "0");
 
-    await User.create({
-      code,
-      activated: false
-    });
+    // 🔥 SHU YANGI QATOR
+    const exist = await User.findOne({ code });
+
+    if (!exist) {
+      await User.create({
+        code,
+        activated: false
+      });
+    }
   }
 
-  res.send("✅ 100 ta kod yaratildi");
+  res.send("✅ Duplicatesiz kodlar yaratildi");
 });
 // ===== USER PAGE (PREMIUM DESIGN) =====
 app.get("/:code", async (req, res) => {
