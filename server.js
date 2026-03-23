@@ -27,7 +27,7 @@ const UserSchema = new mongoose.Schema({
   telegram: String,
   instagram: String,
   owner: Number,
-  activated: { type: Boolean, default: false } // 🔥 YANGI
+  activated: { type: Boolean, default: false } // 🔥 SHU YERGA
 });
 
 const User = mongoose.model("User", UserSchema);
