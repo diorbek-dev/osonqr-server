@@ -115,17 +115,28 @@ app.get("/delete/:code", async (req, res) => {
   res.redirect("/admin");
 });
 app.get("/generate", async (req, res) => {
-  for (let i = 1; i <= 100; i++) {
+  // 🔥 oxirgi kodni topamiz
+  const last = await User.findOne().sort({ code: -1 });
+
+  let start = 1;
+
+  if (last && last.code) {
+    const num = parseInt(last.code.replace("A", ""));
+    start = num + 1;
+  }
+
+  // 🔥 keyingi 100 ta yaratamiz
+  for (let i = start; i < start + 100; i++) {
     const code = "A" + String(i).padStart(3, "0");
 
-    // 🔥 SHU YANGI QATOR
-    const exist = await User.findOne({ code });
+    await User.create({
+      code,
+      activated: false
+    });
+  }
 
-    if (!exist) {
-      await User.create({
-        code,
-        activated: false
-      });
+  res.send(`✅ ${start} dan ${start + 99} gacha yaratildi`);
+});
     }
   }
 
