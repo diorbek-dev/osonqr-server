@@ -42,8 +42,29 @@ app.post(`/bot${process.env.BOT_TOKEN}`, (req, res) => {
 });
 
 // ===== HOME =====
-app.get("/", (req, res) => {
-  res.send("🚀 Server ishlayapti");
+app.get("/:code", async (req, res) => {
+  const code = req.params.code;
+
+  const user = await User.findOne({ code });
+
+  if (!user) {
+    return res.send("Topilmadi ❌");
+  }
+
+  // ❌ AKTIV EMAS → BOT
+  if (!user.activated) {
+    return res.redirect(`https://t.me/SENING_BOT_USERNAME?start=${code}`);
+  }
+
+  // ✅ AKTIV → INFO
+  res.send(`
+    <h2>${user.name || "Ism yo‘q"}</h2>
+    <p>${user.phone || ""}</p>
+
+    ${user.phone ? `<a href="tel:${user.phone}">📞 Qo‘ng‘iroq</a><br>` : ""}
+    ${user.telegram ? `<a href="https://t.me/${user.telegram}">Telegram</a><br>` : ""}
+    ${user.instagram ? `<a href="https://instagram.com/${user.instagram}">Instagram</a>` : ""}
+  `);
 });
 
 // ===== LOGIN =====
