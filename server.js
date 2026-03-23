@@ -1,6 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const session = require("express-session");
+const QRCode = require("qrcode");
 
 const app = express();
 
@@ -14,14 +15,14 @@ app.use(session({
   saveUninitialized: true
 }));
 
-// ===== MONGODB =====
+// ===== DB =====
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB ulandi"))
   .catch(err => console.log("❌ MongoDB xato:", err));
 
 // ===== MODEL =====
 const UserSchema = new mongoose.Schema({
-  code: { type: String, unique: true }, // 🔥 SHU YERGA QO‘SHILDI
+  code: { type: String, unique: true },
   name: String,
   phone: String,
   telegram: String,
@@ -66,14 +67,14 @@ app.post("/login", (req, res) => {
     return res.redirect("/admin");
   }
 
-  res.send("❌ Xato login");
+  res.send("❌ Login xato");
 });
 
 // ===== ADMIN =====
 app.get("/admin", async (req, res) => {
   if (!req.session.auth) return res.redirect("/login");
 
-  const data = await User.find();
+  const users = await User.find();
 
   let html = `
     <h2>Admin Panel</h2>
@@ -83,10 +84,13 @@ app.get("/admin", async (req, res) => {
       <button>Qo‘shish</button>
     </form>
 
+    <br><a href="/generate">100 ta kod yarat</a>
+    <br><a href="/qr">QR ko‘rish</a>
+
     <hr>
   `;
 
-  data.forEach(u => {
+  users.forEach(u => {
     html += `
       <p>
         ${u.code} — ${u.name || "bo‘sh"} 
@@ -114,8 +118,31 @@ app.get("/delete/:code", async (req, res) => {
   await User.findOneAndDelete({ code: req.params.code });
   res.redirect("/admin");
 });
-const QRCode = require("qrcode");
 
+// ===== GENERATE (cheksiz) =====
+app.get("/generate", async (req, res) => {
+  const last = await User.findOne().sort({ code: -1 });
+
+  let start = 1;
+
+  if (last && last.code) {
+    const num = parseInt(last.code.replace("A", ""));
+    start = num + 1;
+  }
+
+  for (let i = start; i < start + 100; i++) {
+    const code = "A" + String(i).padStart(3, "0");
+
+    await User.create({
+      code,
+      activated: false
+    });
+  }
+
+  res.send(`✅ ${start} dan ${start + 99} gacha yaratildi`);
+});
+
+// ===== QR PAGE =====
 app.get("/qr", async (req, res) => {
   const users = await User.find().limit(100);
 
@@ -165,37 +192,11 @@ app.get("/qr", async (req, res) => {
 
   res.send(html);
 });
-app.get("/generate", async (req, res) => {
-  // 🔥 oxirgi kodni topamiz
-  const last = await User.findOne().sort({ code: -1 });
 
-  let start = 1;
-
-  if (last && last.code) {
-    const num = parseInt(last.code.replace("A", ""));
-    start = num + 1;
-  }
-
-  // 🔥 keyingi 100 ta yaratamiz
-  for (let i = start; i < start + 100; i++) {
-    const code = "A" + String(i).padStart(3, "0");
-
-    await User.create({
-      code,
-      activated: false
-    });
-  }
-
-  res.send(`✅ ${start} dan ${start + 99} gacha yaratildi`);
-});
-    }
-  }
-
-  res.send("✅ Duplicatesiz kodlar yaratildi");
-});
-// ===== USER PAGE (PREMIUM DESIGN) =====
+// ===== USER PAGE (ENG OXIRIDA) =====
 app.get("/:code", async (req, res) => {
   const code = req.params.code.toUpperCase();
+
   const user = await User.findOne({ code });
 
   if (!user) return res.send("Topilmadi ❌");
@@ -204,18 +205,17 @@ app.get("/:code", async (req, res) => {
     return res.redirect(`https://t.me/osonqr_bot?start=${code}`);
   }
 
-res.send(`
+  res.send(`
 <!DOCTYPE html>
-<html lang="uz">
+<html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>${user.name || "Profil"}</title>
 
 <style>
 body {
   margin: 0;
-  font-family: -apple-system, sans-serif;
-  background: radial-gradient(circle at top, #0f172a, #020617);
+  font-family: sans-serif;
+  background: #0f172a;
   color: white;
   display: flex;
   justify-content: center;
@@ -223,7 +223,6 @@ body {
   height: 100vh;
 }
 
-/* CARD */
 .card {
   width: 90%;
   max-width: 380px;
@@ -231,87 +230,36 @@ body {
   border-radius: 25px;
   padding: 25px;
   text-align: center;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-  animation: fadeIn 0.6s ease;
 }
 
-/* LOGO */
 .logo-img {
   width: 90px;
-  height: 90px;
-  object-fit: contain;
-  margin-bottom: 10px;
   border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(255,215,0,0.4);
+  margin-bottom: 10px;
 }
 
-/* NAME */
 .name {
   font-size: 26px;
   font-weight: bold;
 }
 
-/* PHONE */
 .phone {
   opacity: 0.7;
   margin-bottom: 20px;
 }
 
-/* BUTTON */
 .btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-
-  width: 100%;
+  display: block;
   padding: 15px;
   margin: 10px 0;
-
   border-radius: 14px;
   text-decoration: none;
   color: white;
-  font-weight: 600;
-  font-size: 16px;
-
-  transition: 0.2s;
 }
 
-.btn:hover {
-  transform: scale(1.04);
-}
-
-/* COLORS */
-.call {
-  background: #22c55e;
-}
-
-.tg {
-  background: #229ED9;
-}
-
-.ig {
-  background: linear-gradient(45deg, #feda75, #fa7e1e, #d62976, #962fbf, #4f5bd5);
-}
-
-/* FOOTER */
-.footer {
-  margin-top: 20px;
-  font-size: 13px;
-  opacity: 0.6;
-}
-
-/* ANIMATION */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+.call { background: #22c55e; }
+.tg { background: #229ED9; }
+.ig { background: linear-gradient(45deg,#feda75,#d62976,#962fbf); }
 </style>
 </head>
 
@@ -319,37 +267,14 @@ body {
 
 <div class="card">
 
-<!-- 🔥 LOGO -->
 <img src="https://i.postimg.cc/sDkRyrwC/photo_2026_03_23_21_54_07.jpg" class="logo-img">
 
-<!-- USER INFO -->
 <div class="name">${user.name || "Ism yo‘q"}</div>
 <div class="phone">${user.phone || ""}</div>
 
-<!-- BUTTONS -->
-${user.phone ? `
-<a class="btn call" href="tel:${user.phone}">
-📞 Qo‘ng‘iroq
-</a>
-` : ""}
-
-${user.telegram ? `
-<a class="btn tg" href="https://t.me/${user.telegram}">
-✈️ Telegram
-</a>
-` : ""}
-
-${user.instagram ? `
-<a class="btn ig" href="https://instagram.com/${user.instagram}">
-📸 Instagram
-</a>
-` : ""}
-
-<!-- FOOTER -->
-<div class="footer">
-Powered by <b>OsonQR 🚀</b><br>
-QR orqali kontaktlaringizni ulashing
-</div>
+${user.phone ? `<a class="btn call" href="tel:${user.phone}">📞 Qo‘ng‘iroq</a>` : ""}
+${user.telegram ? `<a class="btn tg" href="https://t.me/${user.telegram}">Telegram</a>` : ""}
+${user.instagram ? `<a class="btn ig" href="https://instagram.com/${user.instagram}">Instagram</a>` : ""}
 
 </div>
 
