@@ -34,7 +34,8 @@ bot.on("message", async (msg) => {
 
   // ===== SUPPORT =====
   if (text === "📞 Qo‘llab-quvvatlash") {
-    return bot.sendMessage(chatId,
+    return bot.sendMessage(
+      chatId,
       "📞 Aloqa:\n\n📱 +998884715959\n💬 @Shixnazarov"
     );
   }
@@ -52,35 +53,23 @@ bot.on("message", async (msg) => {
 
   // ===== AKTIVATSIYA =====
 
- if (state?.step === "code") {
-  const code = text.toUpperCase();
+  if (state?.step === "code") {
+    const code = text.toUpperCase();
 
-  const user = await User.findOne({ code });
+    const user = await User.findOne({ code });
 
-  if (!user) {
-    return bot.sendMessage(chatId, "❌ Kod topilmadi");
-  }
-
-  if (user.activated) {
-    return bot.sendMessage(chatId, "❌ Bu kod allaqachon ishlatilgan");
-  }
-
-  userState[chatId] = { step: "name", code };
-
-  return bot.sendMessage(
-    chatId,
-    "👤 Ismingizni kiriting:",
-    {
-      reply_markup: {
-        keyboard: [["⏭ Ismsiz davom etish"]],
-        resize_keyboard: true
-      }
+    if (!user) {
+      return bot.sendMessage(chatId, "❌ Kod topilmadi");
     }
-  );
-}
+
+    if (user.activated) {
+      return bot.sendMessage(chatId, "❌ Bu kod allaqachon ishlatilgan");
+    }
+
     userState[chatId] = { step: "name", code };
 
-    return bot.sendMessage(chatId,
+    return bot.sendMessage(
+      chatId,
       "👤 Ismingizni kiriting:",
       {
         reply_markup: {
@@ -95,11 +84,14 @@ bot.on("message", async (msg) => {
     state.name = text === "⏭ Ismsiz davom etish" ? "" : text;
     state.step = "phone";
 
-    return bot.sendMessage(chatId,
+    return bot.sendMessage(
+      chatId,
       "📞 Telefon raqam kiriting\n\nMasalan: 884715959",
       {
         reply_markup: {
-          keyboard: [[{ text: "📱 Kontakt yuborish", request_contact: true }]],
+          keyboard: [
+            [{ text: "📱 Kontakt yuborish", request_contact: true }]
+          ],
           resize_keyboard: true
         }
       }
@@ -109,21 +101,20 @@ bot.on("message", async (msg) => {
   if (state?.step === "phone") {
     let phone = text;
 
-    // agar contact yuborsa
     if (msg.contact) {
       phone = msg.contact.phone_number;
     }
 
-    // validatsiya
-    if (!phone.match(/^[0-9+]{7,15}$/)) {
+    if (!phone || !phone.match(/^[0-9+]{7,15}$/)) {
       return bot.sendMessage(chatId, "❌ Telefon noto‘g‘ri formatda");
     }
 
     state.phone = phone;
     state.step = "telegram";
 
-    return bot.sendMessage(chatId,
-      "💬 Telegram username kiriting\n\nMasalan: @Shixnazarov",
+    return bot.sendMessage(
+      chatId,
+      "💬 Telegram username kiriting\n\nMasalan: @username",
       {
         reply_markup: {
           keyboard: [["⏭ O‘tkazib yuborish"]],
@@ -138,14 +129,15 @@ bot.on("message", async (msg) => {
       if (!text.startsWith("@")) {
         return bot.sendMessage(chatId, "❌ Username @ bilan boshlanishi kerak");
       }
-      state.telegram = text;
+      state.telegram = text.replace("@", "");
     } else {
       state.telegram = "";
     }
 
     state.step = "instagram";
 
-    return bot.sendMessage(chatId,
+    return bot.sendMessage(
+      chatId,
       "📸 Instagram username kiriting\n\nMasalan: dior__132",
       {
         reply_markup: {
@@ -159,21 +151,22 @@ bot.on("message", async (msg) => {
   if (state?.step === "instagram") {
     const instagram = text === "⏭ O‘tkazib yuborish" ? "" : text;
 
-    aawait User.findOneAndUpdate(
-  { code: state.code },
-  {
-    name: state.name,
-    phone: state.phone,
-    telegram: state.telegram,
-    instagram,
-    owner: chatId,
-    activated: true // 🔥 ENG MUHIM
-  }
-);
+    await User.findOneAndUpdate(
+      { code: state.code },
+      {
+        name: state.name,
+        phone: state.phone,
+        telegram: state.telegram,
+        instagram: instagram,
+        owner: chatId,
+        activated: true
+      }
+    );
 
     delete userState[chatId];
 
-    return bot.sendMessage(chatId,
+    return bot.sendMessage(
+      chatId,
       `✅ Tayyor!\n\n🔗 ${DOMAIN}/${state.code}`,
       {
         reply_markup: {
@@ -190,7 +183,8 @@ bot.on("message", async (msg) => {
     const user = await User.findOne({ code: text.toUpperCase() });
 
     if (!user) return bot.sendMessage(chatId, "❌ Topilmadi");
-    if (user.owner !== chatId) return bot.sendMessage(chatId, "❌ Bu sizniki emas");
+    if (user.owner !== chatId)
+      return bot.sendMessage(chatId, "❌ Bu sizniki emas");
 
     userState[chatId] = { step: "edit_name", code: user.code };
 
@@ -211,16 +205,13 @@ bot.on("message", async (msg) => {
 
   if (state?.step === "edit_instagram") {
     await User.findOneAndUpdate(
-  { code: state.code },
-  {
-    name: state.name,
-    phone: state.phone,
-    telegram: state.telegram,
-    instagram: instagram,
-    owner: chatId,
-    activated: true
-  }
-);
+      { code: state.code },
+      {
+        name: state.name,
+        phone: state.phone,
+        instagram: text
+      }
+    );
 
     delete userState[chatId];
 
