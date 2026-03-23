@@ -118,7 +118,7 @@ app.get("/:code", async (req, res) => {
 
   // 🔥 AGAR AKTIV BO‘LMAGAN → BOT
   if (!user.activated) {
-    return res.redirect(`https://t.me/SENING_BOT_USERNAME?start=${code}`);
+    return res.redirect(`https://t.me/@Osonqr_bot?start=${code}`);
   }
 
   // ✅ AKTIV → INFO
