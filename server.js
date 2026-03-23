@@ -126,11 +126,12 @@ app.get("/:code", async (req, res) => {
     return res.redirect(`https://t.me/osonqr_bot?start=${code}`);
   }
 
-  res.send(`
+res.send(`
 <!DOCTYPE html>
 <html lang="uz">
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>${user.name || "Profil"}</title>
 
 <style>
@@ -156,11 +157,18 @@ body {
   box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
+/* LOGO */
+.logo {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 15px;
+  color: #38bdf8;
+}
+
 /* NAME */
 .name {
   font-size: 26px;
   font-weight: bold;
-  margin-bottom: 5px;
 }
 
 /* PHONE */
@@ -175,22 +183,14 @@ body {
   align-items: center;
   justify-content: center;
   gap: 10px;
-
   width: 100%;
   padding: 14px;
   margin: 8px 0;
-
   border-radius: 12px;
   text-decoration: none;
   color: white;
   font-weight: 500;
   font-size: 16px;
-
-  transition: 0.2s;
-}
-
-.btn:hover {
-  transform: scale(1.03);
 }
 
 /* COLORS */
@@ -200,8 +200,11 @@ body {
   background: linear-gradient(45deg, #feda75, #fa7e1e, #d62976, #962fbf, #4f5bd5);
 }
 
-.icon {
-  font-size: 18px;
+/* FOOTER */
+.footer {
+  margin-top: 20px;
+  font-size: 13px;
+  opacity: 0.6;
 }
 </style>
 </head>
@@ -210,29 +213,25 @@ body {
 
 <div class="card">
 
+<div class="logo">🚀 OsonQR</div>
+
 <div class="name">${user.name || "Ism yo‘q"}</div>
 <div class="phone">${user.phone || ""}</div>
 
-${user.phone ? `
-<a class="btn call" href="tel:${user.phone}">
-<span class="icon">📞</span> Qo‘ng‘iroq
-</a>` : ""}
+${user.phone ? `<a class="btn call" href="tel:${user.phone}">📞 Qo‘ng‘iroq</a>` : ""}
+${user.telegram ? `<a class="btn tg" href="https://t.me/${user.telegram}">✈️ Telegram</a>` : ""}
+${user.instagram ? `<a class="btn ig" href="https://instagram.com/${user.instagram}">📸 Instagram</a>` : ""}
 
-${user.telegram ? `
-<a class="btn tg" href="https://t.me/${user.telegram}">
-<span class="icon">✈️</span> Telegram
-</a>` : ""}
-
-${user.instagram ? `
-<a class="btn ig" href="https://instagram.com/${user.instagram}">
-<span class="icon">📸</span> Instagram
-</a>` : ""}
+<div class="footer">
+Powered by OsonQR 🚀 <br>
+QR orqali kontaktlaringizni ulashing
+</div>
 
 </div>
 
 </body>
 </html>
-  `);
+`);
 });
 
 // ===== START =====
