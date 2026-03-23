@@ -119,11 +119,109 @@ app.get("/:code", async (req, res) => {
   if (!user) return res.send("Topilmadi");
 
   res.send(`
-    <h2>${user.name}</h2>
-    <p>${user.phone}</p>
-    ${user.telegram ? `<a href="https://t.me/${user.telegram}">Telegram</a><br>` : ""}
-    ${user.instagram ? `<a href="https://instagram.com/${user.instagram}">Instagram</a>` : ""}
-  `);
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${user.name}</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.container {
+  width: 100%;
+  max-width: 400px;
+  padding: 20px;
+}
+
+.card {
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(15px);
+  border-radius: 20px;
+  padding: 25px;
+  text-align: center;
+  box-shadow: 0 0 30px rgba(0,0,0,0.3);
+}
+
+.name {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.phone {
+  opacity: 0.8;
+  margin-bottom: 20px;
+}
+
+.btn {
+  display: block;
+  text-decoration: none;
+  margin: 10px 0;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  transition: 0.3s;
+}
+
+.call {
+  background: #22c55e;
+}
+
+.tg {
+  background: #3b82f6;
+}
+
+.ig {
+  background: #e1306c;
+}
+
+.btn:hover {
+  transform: scale(1.05);
+  opacity: 0.9;
+}
+
+.footer {
+  margin-top: 15px;
+  font-size: 12px;
+  opacity: 0.5;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+  <div class="card">
+
+    <div class="name">${user.name}</div>
+    <div class="phone">${user.phone || ""}</div>
+
+    ${user.phone ? `<a class="btn call" href="tel:${user.phone}">📞 Qo‘ng‘iroq</a>` : ""}
+
+    ${user.telegram ? `<a class="btn tg" href="https://t.me/${user.telegram}">📲 Telegram</a>` : ""}
+
+    ${user.instagram ? `<a class="btn ig" href="https://instagram.com/${user.instagram}">📸 Instagram</a>` : ""}
+
+    <div class="footer">Powered by OsonQR 🚀</div>
+
+  </div>
+</div>
+
+</body>
+</html>
+`);
 });
 
 // ===== START =====
