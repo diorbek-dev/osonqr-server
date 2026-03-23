@@ -11,12 +11,40 @@ const User = mongoose.model("User");
 
 const userState = {};
 
-// ===== MAIN MENU =====
-bot.onText(/\/start/, (msg) => {
+// ===== START WITH CODE (QR orqali keladi) =====
+bot.onText(/\/start (.+)/, async (msg, match) => {
+  const chatId = msg.chat.id;
+  const code = match[1];
+
+  const user = await User.findOne({ code });
+
+  if (!user) {
+    return bot.sendMessage(chatId, "❌ Kod topilmadi");
+  }
+
+  if (user.activated) {
+    return bot.sendMessage(chatId, "❌ Bu kod allaqachon ishlatilgan");
+  }
+
+  userState[chatId] = { step: "name", code };
+
+  return bot.sendMessage(
+    chatId,
+    "👤 Ismingizni kiriting:",
+    {
+      reply_markup: {
+        keyboard: [["⏭ Ismsiz davom etish"]],
+        resize_keyboard: true
+      }
+    }
+  );
+});
+
+// ===== ODDIY START (menu) =====
+bot.onText(/^\/start$/, (msg) => {
   bot.sendMessage(msg.chat.id, "📲 OSON QR BOT", {
     reply_markup: {
       keyboard: [
-        ["🆕 Aktivatsiya"],
         ["✏️ Tahrirlash"],
         ["📞 Qo‘llab-quvvatlash"]
       ],
@@ -30,6 +58,8 @@ bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   const text = msg.text;
 
+  if (!text) return;
+
   const state = userState[chatId];
 
   // ===== SUPPORT =====
@@ -40,45 +70,7 @@ bot.on("message", async (msg) => {
     );
   }
 
-  // ===== MENU =====
-  if (text === "🆕 Aktivatsiya") {
-    userState[chatId] = { step: "code" };
-    return bot.sendMessage(chatId, "🔑 Kod kiriting (masalan: A001)");
-  }
-
-  if (text === "✏️ Tahrirlash") {
-    userState[chatId] = { step: "edit_code" };
-    return bot.sendMessage(chatId, "✏️ Kod kiriting:");
-  }
-
   // ===== AKTIVATSIYA =====
-
-  if (state?.step === "code") {
-    const code = text.toUpperCase();
-
-    const user = await User.findOne({ code });
-
-    if (!user) {
-      return bot.sendMessage(chatId, "❌ Kod topilmadi");
-    }
-
-    if (user.activated) {
-      return bot.sendMessage(chatId, "❌ Bu kod allaqachon ishlatilgan");
-    }
-
-    userState[chatId] = { step: "name", code };
-
-    return bot.sendMessage(
-      chatId,
-      "👤 Ismingizni kiriting:",
-      {
-        reply_markup: {
-          keyboard: [["⏭ Ismsiz davom etish"]],
-          resize_keyboard: true
-        }
-      }
-    );
-  }
 
   if (state?.step === "name") {
     state.name = text === "⏭ Ismsiz davom etish" ? "" : text;
@@ -167,10 +159,13 @@ bot.on("message", async (msg) => {
 
     return bot.sendMessage(
       chatId,
-      `✅ Tayyor!\n\n🔗 ${DOMAIN}/${state.code}`,
+      `✅ Aktivatsiya tugadi!\n\n🔗 ${DOMAIN}/${state.code}`,
       {
         reply_markup: {
-          keyboard: [["🆕 Aktivatsiya"], ["✏️ Tahrirlash"]],
+          keyboard: [
+            ["✏️ Tahrirlash"],
+            ["📞 Qo‘llab-quvvatlash"]
+          ],
           resize_keyboard: true
         }
       }
@@ -178,6 +173,11 @@ bot.on("message", async (msg) => {
   }
 
   // ===== EDIT =====
+
+  if (text === "✏️ Tahrirlash") {
+    userState[chatId] = { step: "edit_code" };
+    return bot.sendMessage(chatId, "✏️ Kod kiriting:");
+  }
 
   if (state?.step === "edit_code") {
     const user = await User.findOne({ code: text.toUpperCase() });
