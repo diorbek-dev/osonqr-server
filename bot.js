@@ -211,13 +211,16 @@ bot.on("message", async (msg) => {
 
   if (state?.step === "edit_instagram") {
     await User.findOneAndUpdate(
-      { code: state.code },
-      {
-        name: state.name,
-        phone: state.phone,
-        instagram: text
-      }
-    );
+  { code: state.code },
+  {
+    name: state.name,
+    phone: state.phone,
+    telegram: state.telegram,
+    instagram: instagram,
+    owner: chatId,
+    activated: true
+  }
+);
 
     delete userState[chatId];
 
