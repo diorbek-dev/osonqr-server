@@ -11,30 +11,38 @@ const User = mongoose.model("User");
 
 const userState = {};
 
-// START
+// ===== MAIN MENU =====
 bot.onText(/\/start/, (msg) => {
   bot.sendMessage(msg.chat.id, "📲 OSON QR BOT", {
     reply_markup: {
       keyboard: [
         ["🆕 Aktivatsiya"],
-        ["✏️ Tahrirlash"]
+        ["✏️ Tahrirlash"],
+        ["📞 Qo‘llab-quvvatlash"]
       ],
       resize_keyboard: true
     }
   });
 });
 
-// MESSAGE
+// ===== MESSAGE =====
 bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   const text = msg.text;
 
   const state = userState[chatId];
 
+  // ===== SUPPORT =====
+  if (text === "📞 Qo‘llab-quvvatlash") {
+    return bot.sendMessage(chatId,
+      "📞 Aloqa:\n\n📱 +998884715959\n💬 @Shixnazarov"
+    );
+  }
+
   // ===== MENU =====
   if (text === "🆕 Aktivatsiya") {
     userState[chatId] = { step: "code" };
-    return bot.sendMessage(chatId, "🔑 Kod kiriting:");
+    return bot.sendMessage(chatId, "🔑 Kod kiriting (masalan: A001)");
   }
 
   if (text === "✏️ Tahrirlash") {
@@ -48,44 +56,108 @@ bot.on("message", async (msg) => {
     const code = text.toUpperCase();
 
     const exist = await User.findOne({ code });
-    if (exist) return bot.sendMessage(chatId, "❌ Band kod");
+    if (exist) return bot.sendMessage(chatId, "❌ Bu kod band");
 
     userState[chatId] = { step: "name", code };
-    return bot.sendMessage(chatId, "👤 Ismingiz:");
+
+    return bot.sendMessage(chatId,
+      "👤 Ismingizni kiriting:",
+      {
+        reply_markup: {
+          keyboard: [["⏭ Ismsiz davom etish"]],
+          resize_keyboard: true
+        }
+      }
+    );
   }
 
   if (state?.step === "name") {
-    state.name = text;
+    state.name = text === "⏭ Ismsiz davom etish" ? "" : text;
     state.step = "phone";
-    return bot.sendMessage(chatId, "📞 Telefon:");
+
+    return bot.sendMessage(chatId,
+      "📞 Telefon raqam kiriting\n\nMasalan: 884715959",
+      {
+        reply_markup: {
+          keyboard: [[{ text: "📱 Kontakt yuborish", request_contact: true }]],
+          resize_keyboard: true
+        }
+      }
+    );
   }
 
   if (state?.step === "phone") {
-    state.phone = text;
+    let phone = text;
+
+    // agar contact yuborsa
+    if (msg.contact) {
+      phone = msg.contact.phone_number;
+    }
+
+    // validatsiya
+    if (!phone.match(/^[0-9+]{7,15}$/)) {
+      return bot.sendMessage(chatId, "❌ Telefon noto‘g‘ri formatda");
+    }
+
+    state.phone = phone;
     state.step = "telegram";
-    return bot.sendMessage(chatId, "💬 Telegram username:");
+
+    return bot.sendMessage(chatId,
+      "💬 Telegram username kiriting\n\nMasalan: @Shixnazarov",
+      {
+        reply_markup: {
+          keyboard: [["⏭ O‘tkazib yuborish"]],
+          resize_keyboard: true
+        }
+      }
+    );
   }
 
   if (state?.step === "telegram") {
-    state.telegram = text;
+    if (text !== "⏭ O‘tkazib yuborish") {
+      if (!text.startsWith("@")) {
+        return bot.sendMessage(chatId, "❌ Username @ bilan boshlanishi kerak");
+      }
+      state.telegram = text;
+    } else {
+      state.telegram = "";
+    }
+
     state.step = "instagram";
-    return bot.sendMessage(chatId, "📸 Instagram:");
+
+    return bot.sendMessage(chatId,
+      "📸 Instagram username kiriting\n\nMasalan: dior__132",
+      {
+        reply_markup: {
+          keyboard: [["⏭ O‘tkazib yuborish"]],
+          resize_keyboard: true
+        }
+      }
+    );
   }
 
   if (state?.step === "instagram") {
+    const instagram = text === "⏭ O‘tkazib yuborish" ? "" : text;
+
     await User.create({
       code: state.code,
       name: state.name,
       phone: state.phone,
       telegram: state.telegram,
-      instagram: text,
+      instagram,
       owner: chatId
     });
 
     delete userState[chatId];
 
     return bot.sendMessage(chatId,
-      `✅ Tayyor!\n\n🔗 ${DOMAIN}/${state.code}`
+      `✅ Tayyor!\n\n🔗 ${DOMAIN}/${state.code}`,
+      {
+        reply_markup: {
+          keyboard: [["🆕 Aktivatsiya"], ["✏️ Tahrirlash"]],
+          resize_keyboard: true
+        }
+      }
     );
   }
 
@@ -98,6 +170,7 @@ bot.on("message", async (msg) => {
     if (user.owner !== chatId) return bot.sendMessage(chatId, "❌ Bu sizniki emas");
 
     userState[chatId] = { step: "edit_name", code: user.code };
+
     return bot.sendMessage(chatId, "👤 Yangi ism:");
   }
 
