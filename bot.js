@@ -53,11 +53,30 @@ bot.on("message", async (msg) => {
   // ===== AKTIVATSIYA =====
 
   if (state?.step === "code") {
-    const code = text.toUpperCase();
+  const code = text.toUpperCase();
 
-    const exist = await User.findOne({ code });
-    if (exist) return bot.sendMessage(chatId, "❌ Bu kod band");
+  const user = await User.findOne({ code });
 
+  if (!user) {
+    return bot.sendMessage(chatId, "❌ Kod topilmadi");
+  }
+
+  if (user.activated) {
+    return bot.sendMessage(chatId, "❌ Bu kod allaqachon ishlatilgan");
+  }
+
+  userState[chatId] = { step: "name", code };
+
+  return bot.sendMessage(chatId,
+    "👤 Ismingizni kiriting:",
+    {
+      reply_markup: {
+        keyboard: [["⏭ Ismsiz davom etish"]],
+        resize_keyboard: true
+      }
+    }
+  );
+}
     userState[chatId] = { step: "name", code };
 
     return bot.sendMessage(chatId,
@@ -139,14 +158,17 @@ bot.on("message", async (msg) => {
   if (state?.step === "instagram") {
     const instagram = text === "⏭ O‘tkazib yuborish" ? "" : text;
 
-    await User.create({
-      code: state.code,
-      name: state.name,
-      phone: state.phone,
-      telegram: state.telegram,
-      instagram,
-      owner: chatId
-    });
+    aawait User.findOneAndUpdate(
+  { code: state.code },
+  {
+    name: state.name,
+    phone: state.phone,
+    telegram: state.telegram,
+    instagram,
+    owner: chatId,
+    activated: true // 🔥 ENG MUHIM
+  }
+);
 
     delete userState[chatId];
 
