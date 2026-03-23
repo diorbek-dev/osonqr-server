@@ -114,7 +114,18 @@ app.get("/delete/:code", async (req, res) => {
   await User.findOneAndDelete({ code: req.params.code });
   res.redirect("/admin");
 });
+app.get("/generate", async (req, res) => {
+  for (let i = 1; i <= 100; i++) {
+    const code = "A" + String(i).padStart(3, "0");
 
+    await User.create({
+      code,
+      activated: false
+    });
+  }
+
+  res.send("✅ 100 ta kod yaratildi");
+});
 // ===== USER PAGE (PREMIUM DESIGN) =====
 app.get("/:code", async (req, res) => {
   const code = req.params.code.toUpperCase();
