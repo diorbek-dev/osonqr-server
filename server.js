@@ -14,7 +14,7 @@ app.use(session({
 }));
 
 // ===== MONGODB CONNECT =====
-mongoose.connect(process.env.MONGO_URL)
+mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB ulandi"))
   .catch(err => console.log("❌ MongoDB xato:", err));
 
