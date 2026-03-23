@@ -114,6 +114,57 @@ app.get("/delete/:code", async (req, res) => {
   await User.findOneAndDelete({ code: req.params.code });
   res.redirect("/admin");
 });
+const QRCode = require("qrcode");
+
+app.get("/qr", async (req, res) => {
+  const users = await User.find().limit(100);
+
+  let html = `
+  <html>
+  <head>
+  <title>QR list</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+    .item {
+      border: 1px solid #ddd;
+      padding: 10px;
+    }
+    img {
+      width: 120px;
+    }
+  </style>
+  </head>
+  <body>
+
+  <h2>QR Kodlar</h2>
+  <div class="grid">
+  `;
+
+  for (let user of users) {
+    const url = `${process.env.DOMAIN}/${user.code}`;
+    const qr = await QRCode.toDataURL(url);
+
+    html += `
+      <div class="item">
+        <img src="${qr}"><br>
+        ${user.code}
+      </div>
+    `;
+  }
+
+  html += `
+  </div>
+  </body>
+  </html>
+  `;
+
+  res.send(html);
+});
 app.get("/generate", async (req, res) => {
   // 🔥 oxirgi kodni topamiz
   const last = await User.findOne().sort({ code: -1 });
