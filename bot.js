@@ -11,7 +11,9 @@ const User = mongoose.model("User");
 
 const userState = {};
 
-// ===== START WITH CODE (QR orqali keladi) =====
+const ADMIN_ID = 1773342331;
+
+// ===== START WITH CODE =====
 bot.onText(/\/start (.+)/, async (msg, match) => {
   const chatId = msg.chat.id;
   const code = match[1];
@@ -28,19 +30,15 @@ bot.onText(/\/start (.+)/, async (msg, match) => {
 
   userState[chatId] = { step: "name", code };
 
-  return bot.sendMessage(
-    chatId,
-    "👤 Ismingizni kiriting:",
-    {
-      reply_markup: {
-        keyboard: [["⏭ Ismsiz davom etish"]],
-        resize_keyboard: true
-      }
+  return bot.sendMessage(chatId, "👤 Ismingizni kiriting:", {
+    reply_markup: {
+      keyboard: [["⏭ Ismsiz davom etish"]],
+      resize_keyboard: true
     }
-  );
+  });
 });
 
-// ===== ODDIY START (menu) =====
+// ===== ODDIY START =====
 bot.onText(/^\/start$/, (msg) => {
   bot.sendMessage(msg.chat.id, "📲 OSON QR BOT", {
     reply_markup: {
@@ -76,18 +74,12 @@ bot.on("message", async (msg) => {
     state.name = text === "⏭ Ismsiz davom etish" ? "" : text;
     state.step = "phone";
 
-    return bot.sendMessage(
-      chatId,
-      "📞 Telefon raqam kiriting\n\nMasalan: 884715959",
-      {
-        reply_markup: {
-          keyboard: [
-            [{ text: "📱 Kontakt yuborish", request_contact: true }]
-          ],
-          resize_keyboard: true
-        }
+    return bot.sendMessage(chatId, "📞 Telefon kiriting:", {
+      reply_markup: {
+        keyboard: [[{ text: "📱 Kontakt yuborish", request_contact: true }]],
+        resize_keyboard: true
       }
-    );
+    });
   }
 
   if (state?.step === "phone") {
@@ -98,28 +90,24 @@ bot.on("message", async (msg) => {
     }
 
     if (!phone || !phone.match(/^[0-9+]{7,15}$/)) {
-      return bot.sendMessage(chatId, "❌ Telefon noto‘g‘ri formatda");
+      return bot.sendMessage(chatId, "❌ Telefon noto‘g‘ri");
     }
 
     state.phone = phone;
     state.step = "telegram";
 
-    return bot.sendMessage(
-      chatId,
-      "💬 Telegram username kiriting\n\nMasalan: @username",
-      {
-        reply_markup: {
-          keyboard: [["⏭ O‘tkazib yuborish"]],
-          resize_keyboard: true
-        }
+    return bot.sendMessage(chatId, "💬 Telegram username:", {
+      reply_markup: {
+        keyboard: [["⏭ O‘tkazib yuborish"]],
+        resize_keyboard: true
       }
-    );
+    });
   }
 
   if (state?.step === "telegram") {
     if (text !== "⏭ O‘tkazib yuborish") {
       if (!text.startsWith("@")) {
-        return bot.sendMessage(chatId, "❌ Username @ bilan boshlanishi kerak");
+        return bot.sendMessage(chatId, "❌ @ bilan boshlansin");
       }
       state.telegram = text.replace("@", "");
     } else {
@@ -128,16 +116,12 @@ bot.on("message", async (msg) => {
 
     state.step = "instagram";
 
-    return bot.sendMessage(
-      chatId,
-      "📸 Instagram username kiriting\n\nMasalan: dior__132",
-      {
-        reply_markup: {
-          keyboard: [["⏭ O‘tkazib yuborish"]],
-          resize_keyboard: true
-        }
+    return bot.sendMessage(chatId, "📸 Instagram username:", {
+      reply_markup: {
+        keyboard: [["⏭ O‘tkazib yuborish"]],
+        resize_keyboard: true
       }
-    );
+    });
   }
 
   if (state?.step === "instagram") {
@@ -157,34 +141,33 @@ bot.on("message", async (msg) => {
 
     delete userState[chatId];
 
-const ADMIN_ID = 1773342331;
-
-// ADMIN GA
-bot.sendMessage(
-  ADMIN_ID,
-  `🔔 Yangi aktivatsiya!
+    // 👉 ADMIN GA LINK
+    bot.sendMessage(
+      ADMIN_ID,
+      `🔔 Yangi aktivatsiya!
 
 📌 Kod: ${state.code}
 👤 Ism: ${state.name}
 📞 Telefon: ${state.phone}
 
 🔗 ${DOMAIN}/${state.code}`
-);
+    );
 
-// FOYDALANUVCHIGA
-return bot.sendMessage(
-  chatId,
-  `✅ ${state.code} faollashtirildi`,
-  {
-    reply_markup: {
-      keyboard: [
-        ["✏️ Tahrirlash"],
-        ["📞 Qo'llab-quvvatlash"]
-      ],
-      resize_keyboard: true
-    }
+    // 👉 USER GA FAOL
+    return bot.sendMessage(
+      chatId,
+      `✅ ${state.code} faollashtirildi`,
+      {
+        reply_markup: {
+          keyboard: [
+            ["✏️ Tahrirlash"],
+            ["📞 Qo'llab-quvvatlash"]
+          ],
+          resize_keyboard: true
+        }
+      }
+    );
   }
-);
 
   // ===== EDIT =====
 
