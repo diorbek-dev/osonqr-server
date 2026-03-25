@@ -157,20 +157,33 @@ bot.on("message", async (msg) => {
 
     delete userState[chatId];
 
-    return bot.sendMessage(
-      chatId,
-      `✅ Aktivatsiya tugadi!\n\n🔗 ${DOMAIN}/${state.code}`,
-      {
-        reply_markup: {
-          keyboard: [
-            ["✏️ Tahrirlash"],
-            ["📞 Qo‘llab-quvvatlash"]
-          ],
-          resize_keyboard: true
-        }
-      }
-    );
+// 👉 ADMIN ga yuborish
+const ADMIN_ID = 1773342331;
+
+bot.sendMessage(ADMIN_ID, `
+🔔 Yangi aktivatsiya!
+
+📌 Kod: ${state.code}
+👤 Ism: ${state.name}
+📞 Telefon: ${state.phone}
+
+🔗 ${DOMAIN}/${state.code}
+`);
+
+// 👉 FOYDALANUVCHIGA
+return bot.sendMessage(
+  chatId,
+  `✅ ${state.code} faollashtirildi`,
+  {
+    reply_markup: {
+      keyboard: [
+        ["✏️ Tahrirlash"],
+        ["📞 Qo'llab-quvvatlash"]
+      ],
+      resize_keyboard: true
+    }
   }
+);
 
   // ===== EDIT =====
 
