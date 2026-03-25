@@ -10,45 +10,76 @@ bot.setWebHook(`${DOMAIN}/bot${TOKEN}`);
 const User = mongoose.model("User");
 
 const userState = {};
+const userMessages = {}; // 🧹 xabarlarni o‘chirish uchun
 
 const ADMIN_ID = 1773342331;
+
+// 🧹 Xabarni saqlash
+function saveMessage(chatId, messageId) {
+  if (!userMessages[chatId]) userMessages[chatId] = [];
+  userMessages[chatId].push(messageId);
+}
+
+// 🧹 Xabarlarni tozalash
+async function clearMessages(chatId) {
+  if (!userMessages[chatId]) return;
+
+  for (const msgId of userMessages[chatId]) {
+    try {
+      await bot.deleteMessage(chatId, msgId);
+    } catch (e) {}
+  }
+
+  userMessages[chatId] = [];
+}
 
 // ===== START WITH CODE =====
 bot.onText(/\/start (.+)/, async (msg, match) => {
   const chatId = msg.chat.id;
   const code = match[1];
 
+  await clearMessages(chatId);
+
   const user = await User.findOne({ code });
 
   if (!user) {
-    return bot.sendMessage(chatId, "❌ Kod topilmadi");
+    const m = await bot.sendMessage(chatId, "❌ Kod topilmadi");
+    return saveMessage(chatId, m.message_id);
   }
 
   if (user.activated) {
-    return bot.sendMessage(chatId, "❌ Bu kod allaqachon ishlatilgan");
+    const m = await bot.sendMessage(chatId, "❌ Bu kod ishlatilgan");
+    return saveMessage(chatId, m.message_id);
   }
 
   userState[chatId] = { step: "name", code };
 
-  return bot.sendMessage(chatId, "👤 Ismingizni kiriting:", {
+  const m = await bot.sendMessage(chatId, "👤 Ismingizni kiriting:", {
     reply_markup: {
       keyboard: [["⏭ Ismsiz davom etish"]],
       resize_keyboard: true
     }
   });
+
+  saveMessage(chatId, m.message_id);
 });
 
-// ===== ODDIY START =====
-bot.onText(/^\/start$/, (msg) => {
-  bot.sendMessage(msg.chat.id, "📲 OSON QR BOT", {
+// ===== MENU =====
+bot.onText(/^\/start$/, async (msg) => {
+  const chatId = msg.chat.id;
+
+  const m = await bot.sendMessage(chatId, "📲 OSON QR BOT", {
     reply_markup: {
       keyboard: [
+        ["➕ Yangi aktivatsiya"],
         ["✏️ Tahrirlash"],
         ["📞 Qo‘llab-quvvatlash"]
       ],
       resize_keyboard: true
     }
   });
+
+  saveMessage(chatId, m.message_id);
 });
 
 // ===== MESSAGE =====
@@ -60,12 +91,39 @@ bot.on("message", async (msg) => {
 
   const state = userState[chatId];
 
-  // ===== SUPPORT =====
+  // ➕ YANGI AKTIVATSIYA
+  if (text === "➕ Yangi aktivatsiya") {
+    userState[chatId] = { step: "new_code" };
+    const m = await bot.sendMessage(chatId, "🔑 Kod kiriting:");
+    return saveMessage(chatId, m.message_id);
+  }
+
+  if (state?.step === "new_code") {
+    const user = await User.findOne({ code: text });
+
+    if (!user) {
+      const m = await bot.sendMessage(chatId, "❌ Kod topilmadi");
+      return saveMessage(chatId, m.message_id);
+    }
+
+    if (user.activated) {
+      const m = await bot.sendMessage(chatId, "❌ Bu kod ishlatilgan");
+      return saveMessage(chatId, m.message_id);
+    }
+
+    userState[chatId] = { step: "name", code: text };
+
+    const m = await bot.sendMessage(chatId, "👤 Ismingizni kiriting:");
+    return saveMessage(chatId, m.message_id);
+  }
+
+  // SUPPORT
   if (text === "📞 Qo‘llab-quvvatlash") {
-    return bot.sendMessage(
+    const m = await bot.sendMessage(
       chatId,
       "📞 Aloqa:\n\n📱 +998884715959\n💬 @Shixnazarov"
     );
+    return saveMessage(chatId, m.message_id);
   }
 
   // ===== AKTIVATSIYA =====
@@ -74,66 +132,57 @@ bot.on("message", async (msg) => {
     state.name = text === "⏭ Ismsiz davom etish" ? "" : text;
     state.step = "phone";
 
-    return bot.sendMessage(chatId, "📞 Telefon kiriting:", {
+    const m = await bot.sendMessage(chatId, "📞 Telefon:", {
       reply_markup: {
         keyboard: [[{ text: "📱 Kontakt yuborish", request_contact: true }]],
         resize_keyboard: true
       }
     });
+
+    return saveMessage(chatId, m.message_id);
   }
 
   if (state?.step === "phone") {
     let phone = text;
 
-    if (msg.contact) {
-      phone = msg.contact.phone_number;
-    }
+    if (msg.contact) phone = msg.contact.phone_number;
 
-    if (!phone || !phone.match(/^[0-9+]{7,15}$/)) {
-      return bot.sendMessage(chatId, "❌ Telefon noto‘g‘ri");
+    if (!phone.match(/^[0-9+]{7,15}$/)) {
+      const m = await bot.sendMessage(chatId, "❌ Telefon xato");
+      return saveMessage(chatId, m.message_id);
     }
 
     state.phone = phone;
     state.step = "telegram";
 
-    return bot.sendMessage(chatId, "💬 Telegram username:", {
+    const m = await bot.sendMessage(chatId, "💬 Telegram:", {
       reply_markup: {
         keyboard: [["⏭ O‘tkazib yuborish"]],
         resize_keyboard: true
       }
     });
+
+    return saveMessage(chatId, m.message_id);
   }
 
   if (state?.step === "telegram") {
-    if (text !== "⏭ O‘tkazib yuborish") {
-      if (!text.startsWith("@")) {
-        return bot.sendMessage(chatId, "❌ @ bilan boshlansin");
-      }
-      state.telegram = text.replace("@", "");
-    } else {
-      state.telegram = "";
-    }
+    state.telegram =
+      text === "⏭ O‘tkazib yuborish" ? "" : text.replace("@", "");
 
     state.step = "instagram";
 
-    return bot.sendMessage(chatId, "📸 Instagram username:", {
-      reply_markup: {
-        keyboard: [["⏭ O‘tkazib yuborish"]],
-        resize_keyboard: true
-      }
-    });
+    const m = await bot.sendMessage(chatId, "📸 Instagram:");
+    return saveMessage(chatId, m.message_id);
   }
 
   if (state?.step === "instagram") {
-    const instagram = text === "⏭ O‘tkazib yuborish" ? "" : text;
-
     await User.findOneAndUpdate(
       { code: state.code },
       {
         name: state.name,
         phone: state.phone,
         telegram: state.telegram,
-        instagram: instagram,
+        instagram: text,
         owner: chatId,
         activated: true
       }
@@ -141,39 +190,44 @@ bot.on("message", async (msg) => {
 
     delete userState[chatId];
 
-    // 👉 ADMIN GA LINK
+    // ADMIN GA
     bot.sendMessage(
       ADMIN_ID,
       `🔔 Yangi aktivatsiya!
 
 📌 Kod: ${state.code}
-👤 Ism: ${state.name}
-📞 Telefon: ${state.phone}
+👤 ${state.name}
+📞 ${state.phone}
 
 🔗 ${DOMAIN}/${state.code}`
     );
 
-    // 👉 USER GA FAOL
-    return bot.sendMessage(
+    await clearMessages(chatId);
+
+    const m = await bot.sendMessage(
       chatId,
       `✅ ${state.code} faollashtirildi`,
       {
         reply_markup: {
           keyboard: [
+            ["➕ Yangi aktivatsiya"],
             ["✏️ Tahrirlash"],
-            ["📞 Qo'llab-quvvatlash"]
+            ["📞 Qo‘llab-quvvatlash"]
           ],
           resize_keyboard: true
         }
       }
     );
+
+    return saveMessage(chatId, m.message_id);
   }
 
   // ===== EDIT =====
 
   if (text === "✏️ Tahrirlash") {
     userState[chatId] = { step: "edit_code" };
-    return bot.sendMessage(chatId, "✏️ Kod kiriting:");
+    const m = await bot.sendMessage(chatId, "✏️ Kod:");
+    return saveMessage(chatId, m.message_id);
   }
 
   if (state?.step === "edit_code") {
@@ -181,23 +235,26 @@ bot.on("message", async (msg) => {
 
     if (!user) return bot.sendMessage(chatId, "❌ Topilmadi");
     if (user.owner !== chatId)
-      return bot.sendMessage(chatId, "❌ Bu sizniki emas");
+      return bot.sendMessage(chatId, "❌ Sizniki emas");
 
     userState[chatId] = { step: "edit_name", code: user.code };
 
-    return bot.sendMessage(chatId, "👤 Yangi ism:");
+    const m = await bot.sendMessage(chatId, "👤 Yangi ism:");
+    return saveMessage(chatId, m.message_id);
   }
 
   if (state?.step === "edit_name") {
     state.name = text;
     state.step = "edit_phone";
-    return bot.sendMessage(chatId, "📞 Yangi telefon:");
+    const m = await bot.sendMessage(chatId, "📞 Telefon:");
+    return saveMessage(chatId, m.message_id);
   }
 
   if (state?.step === "edit_phone") {
     state.phone = text;
     state.step = "edit_instagram";
-    return bot.sendMessage(chatId, "📸 Yangi instagram:");
+    const m = await bot.sendMessage(chatId, "📸 Instagram:");
+    return saveMessage(chatId, m.message_id);
   }
 
   if (state?.step === "edit_instagram") {
@@ -212,7 +269,10 @@ bot.on("message", async (msg) => {
 
     delete userState[chatId];
 
-    return bot.sendMessage(chatId, "✅ Yangilandi!");
+    await clearMessages(chatId);
+
+    const m = await bot.sendMessage(chatId, "✅ Yangilandi!");
+    return saveMessage(chatId, m.message_id);
   }
 });
 
