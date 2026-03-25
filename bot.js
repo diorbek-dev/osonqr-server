@@ -24,13 +24,27 @@ function saveMessage(chatId, messageId) {
 async function clearMessages(chatId) {
   if (!userMessages[chatId]) return;
 
-  for (const msgId of userMessages[chatId]) {
+  for (const id of userMessages[chatId]) {
     try {
-      await bot.deleteMessage(chatId, msgId);
+      await bot.deleteMessage(chatId, id);
     } catch {}
   }
 
   userMessages[chatId] = [];
+}
+
+// ===== MENU FUNCTION =====
+function mainMenu(chatId) {
+  return bot.sendMessage(chatId, "📲 OSON QR BOT", {
+    reply_markup: {
+      keyboard: [
+        ["📷 QR orqali aktivatsiya"],
+        ["📦 Mening QRlarim"],
+        ["📞 Qo‘llab-quvvatlash"]
+      ],
+      resize_keyboard: true
+    }
+  });
 }
 
 // ===== START QR =====
@@ -43,11 +57,11 @@ bot.onText(/\/start (.+)/, async (msg, match) => {
   const user = await User.findOne({ code });
 
   if (!user) return bot.sendMessage(chatId, "❌ Kod topilmadi");
-  if (user.activated) return bot.sendMessage(chatId, "❌ Band");
+  if (user.activated) return bot.sendMessage(chatId, "❌ Bu kod band");
 
   userState[chatId] = { step: "name", code };
 
-  bot.sendMessage(chatId, "👤 Ism:", {
+  return bot.sendMessage(chatId, "👤 Ism:", {
     reply_markup: {
       keyboard: [["⏭ Ismsiz"]],
       resize_keyboard: true
@@ -55,18 +69,9 @@ bot.onText(/\/start (.+)/, async (msg, match) => {
   });
 });
 
-// ===== MENU =====
+// ===== START =====
 bot.onText(/^\/start$/, async (msg) => {
-  bot.sendMessage(msg.chat.id, "📲 OSON QR BOT", {
-    reply_markup: {
-      keyboard: [
-        ["📷 QR orqali aktivatsiya"],
-        ["📦 Mening QRlarim"],
-        ["📞 Qo‘llab-quvvatlash"]
-      ],
-      resize_keyboard: true
-    }
-  });
+  return mainMenu(msg.chat.id);
 });
 
 // ===== MAIN =====
@@ -76,14 +81,25 @@ bot.on("message", async (msg) => {
 
   if (!text && !msg.contact) return;
 
-  const state = userState[chatId];
+  // ===== GLOBAL BUTTONS (ENG MUHIM) =====
 
-  // ===== MY QRS =====
+  if (text === "⬅️ Orqaga") {
+    delete userState[chatId];
+    return mainMenu(chatId);
+  }
+
+  if (text === "📷 QR orqali aktivatsiya") {
+    return bot.sendMessage(
+      chatId,
+      "📷 QR kodni skaner qiling va link orqali kiring"
+    );
+  }
+
   if (text === "📦 Mening QRlarim") {
     const list = await User.find({ owner: chatId });
 
     if (!list.length) {
-      return bot.sendMessage(chatId, "❌ Sizda QR yo‘q");
+      return bot.sendMessage(chatId, "❌ QR yo‘q");
     }
 
     let msgText = `📦 Sizda ${list.length} ta QR bor:\n\n`;
@@ -94,11 +110,25 @@ bot.on("message", async (msg) => {
 
     userState[chatId] = { step: "select_qr" };
 
-    return bot.sendMessage(chatId, msgText + "\n✏️ Kodni kiriting:");
+    return bot.sendMessage(chatId, msgText + "\n\n📌 Kod kiriting:");
   }
+
+  if (text === "📞 Qo‘llab-quvvatlash") {
+    return bot.sendMessage(
+      chatId,
+      "📞 +998884715959\n💬 @Shixnazarov"
+    );
+  }
+
+  // ===== STATE =====
+  const state = userState[chatId];
 
   // ===== SELECT QR =====
   if (state?.step === "select_qr") {
+    if (!text.match(/^A[0-9]+$/)) {
+      return bot.sendMessage(chatId, "❌ Masalan: A001");
+    }
+
     const user = await User.findOne({ code: text });
 
     if (!user) return bot.sendMessage(chatId, "❌ Topilmadi");
@@ -144,14 +174,9 @@ bot.on("message", async (msg) => {
       userState[chatId] = { step: "edit_name", code: state.code };
       return bot.sendMessage(chatId, "👤 Yangi ism:");
     }
-
-    if (text === "⬅️ Orqaga") {
-      delete userState[chatId];
-      return bot.sendMessage(chatId, "🔙 Menu");
-    }
   }
 
-  // ===== EDIT FLOW =====
+  // ===== EDIT =====
   if (state?.step === "edit_name") {
     state.name = text;
     state.step = "edit_phone";
@@ -176,14 +201,6 @@ bot.on("message", async (msg) => {
 
     delete userState[chatId];
     return bot.sendMessage(chatId, "✅ Yangilandi");
-  }
-
-  // ===== SUPPORT =====
-  if (text === "📞 Qo‘llab-quvvatlash") {
-    return bot.sendMessage(
-      chatId,
-      "📞 +998884715959\n💬 @Shixnazarov"
-    );
   }
 });
 
