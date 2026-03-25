@@ -10,30 +10,9 @@ bot.setWebHook(`${DOMAIN}/bot${TOKEN}`);
 const User = mongoose.model("User");
 
 const userState = {};
-const userMessages = {};
-
 const ADMIN_ID = 1773342331;
 
-// ===== SAVE =====
-function saveMessage(chatId, messageId) {
-  if (!userMessages[chatId]) userMessages[chatId] = [];
-  userMessages[chatId].push(messageId);
-}
-
-// ===== CLEAR =====
-async function clearMessages(chatId) {
-  if (!userMessages[chatId]) return;
-
-  for (const id of userMessages[chatId]) {
-    try {
-      await bot.deleteMessage(chatId, id);
-    } catch {}
-  }
-
-  userMessages[chatId] = [];
-}
-
-// ===== MENU FUNCTION =====
+// ===== MENU =====
 function mainMenu(chatId) {
   return bot.sendMessage(chatId, "📲 OSON QR BOT", {
     reply_markup: {
@@ -52,8 +31,6 @@ bot.onText(/\/start (.+)/, async (msg, match) => {
   const chatId = msg.chat.id;
   const code = match[1];
 
-  await clearMessages(chatId);
-
   const user = await User.findOne({ code });
 
   if (!user) return bot.sendMessage(chatId, "❌ Kod topilmadi");
@@ -61,9 +38,9 @@ bot.onText(/\/start (.+)/, async (msg, match) => {
 
   userState[chatId] = { step: "name", code };
 
-  return bot.sendMessage(chatId, "👤 Ism:", {
+  return bot.sendMessage(chatId, "👤 Ismingizni kiriting:", {
     reply_markup: {
-      keyboard: [["⏭ Ismsiz"]],
+      keyboard: [["⏭ Ismsiz davom etish"]],
       resize_keyboard: true
     }
   });
@@ -81,7 +58,7 @@ bot.on("message", async (msg) => {
 
   if (!text && !msg.contact) return;
 
-  // ===== GLOBAL BUTTONS (ENG MUHIM) =====
+  // ===== GLOBAL BUTTONS =====
 
   if (text === "⬅️ Orqaga") {
     delete userState[chatId];
@@ -92,6 +69,13 @@ bot.on("message", async (msg) => {
     return bot.sendMessage(
       chatId,
       "📷 QR kodni skaner qiling va link orqali kiring"
+    );
+  }
+
+  if (text === "📞 Qo‘llab-quvvatlash") {
+    return bot.sendMessage(
+      chatId,
+      "📞 +998884715959\n💬 @Shixnazarov"
     );
   }
 
@@ -113,17 +97,110 @@ bot.on("message", async (msg) => {
     return bot.sendMessage(chatId, msgText + "\n\n📌 Kod kiriting:");
   }
 
-  if (text === "📞 Qo‘llab-quvvatlash") {
-    return bot.sendMessage(
-      chatId,
-      "📞 +998884715959\n💬 @Shixnazarov"
-    );
-  }
-
   // ===== STATE =====
   const state = userState[chatId];
 
-  // ===== SELECT QR =====
+  // ===== AKTIVATSIYA =====
+  if (state?.step === "name") {
+    if (
+      text === "⏭ Ismsiz davom etish" ||
+      text === "Ismsiz" ||
+      text === "⏭ Ismsiz"
+    ) {
+      state.name = "";
+    } else {
+      state.name = text;
+    }
+
+    state.step = "phone";
+
+    return bot.sendMessage(chatId, "📞 Telefon:", {
+      reply_markup: {
+        keyboard: [[{ text: "📱 Kontakt yuborish", request_contact: true }]],
+        resize_keyboard: true
+      }
+    });
+  }
+
+  if (state?.step === "phone") {
+    let phone = msg.contact ? msg.contact.phone_number : text;
+
+    if (!phone.match(/^[0-9+]{7,15}$/)) {
+      return bot.sendMessage(chatId, "❌ Telefon noto‘g‘ri");
+    }
+
+    state.phone = phone;
+    state.step = "telegram";
+
+    return bot.sendMessage(chatId, "💬 Telegram (@username):", {
+      reply_markup: {
+        keyboard: [["⏭ O‘tkazib yuborish"]],
+        resize_keyboard: true
+      }
+    });
+  }
+
+  if (state?.step === "telegram") {
+    state.telegram =
+      text === "⏭ O‘tkazib yuborish" ? "" : text.replace("@", "");
+
+    state.step = "instagram";
+
+    return bot.sendMessage(chatId, "📸 Instagram:", {
+      reply_markup: {
+        keyboard: [["⏭ O‘tkazib yuborish"]],
+        resize_keyboard: true
+      }
+    });
+  }
+
+  if (state?.step === "instagram") {
+    const instagram =
+      text === "⏭ O‘tkazib yuborish" ? "" : text;
+
+    await User.updateOne(
+      { code: state.code },
+      {
+        name: state.name,
+        phone: state.phone,
+        telegram: state.telegram,
+        instagram,
+        owner: chatId,
+        activated: true
+      }
+    );
+
+    delete userState[chatId];
+
+    // ADMIN GA
+    bot.sendMessage(
+      ADMIN_ID,
+      `🔔 Yangi aktivatsiya!
+
+📌 ${state.code}
+👤 ${state.name}
+📞 ${state.phone}
+
+🔗 ${DOMAIN}/${state.code}`
+    );
+
+    return bot.sendMessage(
+      chatId,
+      `✅ ${state.code} faollashtirildi`,
+      {
+        reply_markup: {
+          keyboard: [
+            ["📷 QR orqali aktivatsiya"],
+            ["📦 Mening QRlarim"],
+            ["📞 Qo‘llab-quvvatlash"]
+          ],
+          resize_keyboard: true
+        }
+      }
+    );
+  }
+
+  // ===== QR SELECT =====
   if (state?.step === "select_qr") {
     if (!text.match(/^A[0-9]+$/)) {
       return bot.sendMessage(chatId, "❌ Masalan: A001");
