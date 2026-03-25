@@ -157,20 +157,21 @@ bot.on("message", async (msg) => {
 
     delete userState[chatId];
 
-// 👉 ADMIN ga yuborish
 const ADMIN_ID = 1773342331;
 
-bot.sendMessage(ADMIN_ID, `
-🔔 Yangi aktivatsiya!
+// ADMIN GA
+bot.sendMessage(
+  ADMIN_ID,
+  `🔔 Yangi aktivatsiya!
 
 📌 Kod: ${state.code}
 👤 Ism: ${state.name}
 📞 Telefon: ${state.phone}
 
-🔗 ${DOMAIN}/${state.code}
-`);
+🔗 ${DOMAIN}/${state.code}`
+);
 
-// 👉 FOYDALANUVCHIGA
+// FOYDALANUVCHIGA
 return bot.sendMessage(
   chatId,
   `✅ ${state.code} faollashtirildi`,
